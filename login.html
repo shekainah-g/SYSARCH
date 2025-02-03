@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial scale=1.0">
+    <title>CSS Sit-in Monitoring System</title>
+    <link rel="stylesheet" href="Z:\TT217\GacetaSH\static\css\w3.css">
+</head>
+<style>
+    .btn {
+  border: none;
+  background-color: inherit;
+  padding: 14px 28px;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.btn:hover {background: #eee;}
+
+.success {color: green;}
+.info {color: dodgerblue;}
+.warning {color: orange;}
+.danger {color: red;}
+.default {color: black;}
+</style>
+<body>
+    <div class="w3-container w3-border w3-display-middle w3-padding-16">
+        <h2>Login</h2>
+        <form method="POST" action="{{ url_for('login') }}">
+		<label for="username">Username:</label>
+		<input type="text" name="username" id="username" placeholder="Enter username" required> <br><br>
+		<label for="password">Password:</label>
+		<input type="password" name="password" id="password" placeholder="Enter password" required> <br><br>
+		<button type="submit">Login</button>
+        <button class="btn rgstr">Register</button>
+	</form>
+</body>
+</html>
