@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+</head>
+<body>
+    <h2>Registration Form</h2>
+    <form method="POST" action="{{ url_for('register') }}">
+        <label for="idno">ID Number:</label>
+        <input type="text" name="idno" required><br>
+
+        <label for="lastname">Last Name:</label>
+        <input type="text" name="lastname" required><br>
+
+        <label for="firstname">First Name:</label>
+        <input type="text" name="firstname" required><br>
+
+        <label for="midname">Middle Name:</label>
+        <input type="text" name="midname"><br>
+
+        <label for="course">Course:</label>
+        <input type="text" name="course" required><br>
+
+        <label for="yearlvl">Year Level:</label>
+        <input type="text" name="yearlvl" required><br>
+
+        <label for="email">Email:</label>
+        <input type="email" name="email" required><br>
+
+        <label for="uname">Username:</label>
+        <input type="text" name="uname" required><br>
+
+        <label for="password">Password:</label>
+        <input type="password" name="password" required><br>
+
+        <button type="submit">Register</button>
+    </form>
+</body>
+</html>
