@@ -1,40 +1,53 @@
-<!DOCTYPE html>
-<html>
+{% extends 'index.html'%}
+{% block content%}
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial scale=1.0">
-    <title>CSS Sit-in Monitoring System</title>
-    <link rel="stylesheet" href="...css\w3.css">
+
 </head>
-<style>
-    .btn {
-  border: none;
-  background-color: inherit;
-  padding: 14px 28px;
-  font-size: 16px;
-  cursor: pointer;
-  display: inline-block;
-}
-
-.btn:hover {background: #eee;}
-
-.success {color: green;}
-.info {color: dodgerblue;}
-.warning {color: orange;}
-.danger {color: red;}
-.default {color: black;}
-</style>
 
 <body>
-    <div class="w3-container w3-border w3-display-middle w3-padding-16">
-        <h2>Login</h2>
-        <form method="POST" action="{{ url_for('login') }}">
-		<label for="uname">Username:</label>
-		<input type="text" name="uname" id="uname" placeholder="Enter username" required> <br><br>
-		<label for="password">Password:</label>
-		<input type="password" name="password" id="password" placeholder="Enter password" required> <br><br>
-		<button type="submit">Login</button>
-        <a href="{{ url_for('register') }}" class="btn rgstr">Register</a>
-	</form>
+
+    <div class="container w3-display-middle w3-card" style="width: 700px; 
+    background: rgba(255, 255, 255, 0.2); 
+    backdrop-filter: blur(10px); 
+    padding: 20px; 
+    border-radius: 30px; 
+    color: white; 
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%);">
+
+        <div class="row">
+            <div class="logo w3-half w3-container ">
+                <h6> </h6>
+                <img src="{{ url_for('static', filename='image/CCS_LOGO.png') }}" alt="CCS Logo" style="width: 300px; height: 300px;">
+                <h5 style="text-align: center;"> Sit-in Management System </h5>
+            </div>
+
+            <div class="login w3-half">
+                <h2 style="color: white;">Login</h2>
+                <form class="w3-container w3-padding-16 w3-margin-center" method="POST" action="{{ url_for('login') }}">
+                <input type="text" name="uname" id="uname" placeholder="Enter username" required> <br><br>
+                <input type="password" name="password" id="password" placeholder="Enter password" required> <br><br>
+                <button class="w3-block w3-ripple" type="submit">Login</button>
+                <h6>Don't have an account? <a href="{{ url_for('register') }}" class="btn rgstr w3-text-blue w3-margin-center">Register</a></h6>  
+            </form>
+            </div>
+            
+        </div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+    {% endwith %}
 </body>
-</html>
+{% endblock %}
+

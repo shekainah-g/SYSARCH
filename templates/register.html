@@ -1,39 +1,134 @@
-<!DOCTYPE html>
-<html>
+{% extends 'index.html' %}
+{% block content %}
 <head>
-    <title>Register</title>
+    <script>
+        function duplicateText() {
+            document.getElementById("uname").value = document.getElementById("idno").value;
+        }
+    </script>
+    <style>
+        .form-container {
+            width: 1200px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 30px;
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px; /* Adds space between columns */
+        }
+
+        .form-column {
+            flex: 1;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: none;
+        }
+
+        label {
+        color: white;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
+
 <body>
-    <h2>Registration Form</h2>
-    <form method="POST" action="{{ url_for('register') }}">
-        <label for="idno">ID Number:</label>
-        <input type="text" name="idno" required><br>
+    <div class="form-container">
+        <h2 style="color: white;">Registration Form</h2>
+        <form method="POST" action="{{ url_for('register') }}">
+            
+           
+            <div class="form-row">
+                <!-- Left Column -->
+                <div class="form-column">
+                    <label for="idno">ID Number:</label>
+                    <input type="text" id="idno" name="idno" required onkeyup="duplicateText()"><br>
 
-        <label for="lastname">Last Name:</label>
-        <input type="text" name="lastname" required><br>
+                    <label for="lastname">Last Name:</label>
+                    <input type="text" id="lastname" name="lastname" required><br>
 
-        <label for="firstname">First Name:</label>
-        <input type="text" name="firstname" required><br>
+                    <label for="firstname">First Name:</label>
+                    <input type="text" id="firstname" name="firstname" required><br>
 
-        <label for="midname">Middle Name:</label>
-        <input type="text" name="midname"><br>
+                    <label for="midname">Middle Name:</label>
+                    <input type="text" id="midname" name="midname"><br>
 
-        <label for="course">Course:</label>
-        <input type="text" name="course" required><br>
+                    <label for="course">Course:</label>
+                    <select id="course" name="course" required>
+                        <option value="" disabled selected>Select your course</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Information Technology">Information Technology</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Business Administration">Business Administration</option>
+                        <option value="Nursing">Nursing</option>
+                        <option value="Psychology">Psychology</option>
+                        <option value="Computer Engineering">Computer Engineering</option>
+                    </select><br>
+                </div>
 
-        <label for="yearlvl">Year Level:</label>
-        <input type="text" name="yearlvl" required><br>
+                <!-- Right Column -->
+                <div class="form-column">
+                    <label for="yearlvl">Year Level:</label>
+                    <select id="yearlvl" name="yearlvl" required>
+                        <option value="" disabled selected>Select your year level</option>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                    </select><br>
 
-        <label for="email">Email:</label>
-        <input type="email" name="email" required><br>
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required><br>
 
-        <label for="uname">Username:</label>
-        <input type="text" name="uname" required><br>
+                    <label for="uname">Username:</label>
+                    <input type="text" id="uname" name="uname" required><br>
 
-        <label for="password">Password:</label>
-        <input type="password" name="password" required><br>
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required><br>
 
-        <button type="submit">Register</button>
-    </form>
+                    <button type="submit">Register</button>
+                </div>
+            </div>
+
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
 </body>
-</html>
+{% endblock %}

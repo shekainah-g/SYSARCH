@@ -4,9 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial sale=1.0">
     <title>CSS Sit-in Monitoring System</title>
-    <link rel="stylesheet" href="...css\w3.css">
+    <link rel="stylesheet" href="../static/css/w3.css">
+    <style>
+         body {
+            background-image: url("{{ url_for('static', filename='image/lab.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+            margin: 0;
+        }
+
+    .container {
+        background-color: white;
+        padding: 20px;
+        border: 8px;
+        box-shadow: 0 0 10 rgba(0, 0, 0, 0.1 );
+        width: 700px;
+        position: fixed;
+    }
+
+    .flash-messages {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 50%;
+    color: white;
+    padding: 20px;
+    }
+
+    .flash {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    }
+
+    .flash.success {
+    background-color: rgba(40, 167, 69, 0.8);
+    }
+
+    .flash.error {
+    background-color: rgba(220, 53, 69, 0.8);
+    }
+
+    .form-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: white;
+        }
+
+        label {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        select[id="course"],[id="yearlvl"]{    
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        button[type="submit"] {
+            background-color: #D0A823;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #faf8a3;
+            color: black;
+        }
+
+        
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+   
+    
+    </style>
 </head>
 <body>
-    <h1>WELCOME!</h1>
+    {% block content %}
+    {% endblock %}
 </body>
+<script>
+    setTimeout(() => {
+                const flashMessages = document.querySelectorAll('.flash');
+                flashMessages.forEach(flash => {
+                    flash.style.display = 'none';
+                });
+            }, 3000);
+</script>
 </html>

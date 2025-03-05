@@ -1,0 +1,23 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+
+    <div  class="container w3-card" style="position: absolute; top: 38%; left: 12%; width: 335px; height:500px; transform: translate(-50%, -50%);">
+        <button type="button" class="w3-bar-item w3-button" onclick="location.href='{{ url_for('edit_profile') }}'">
+            <i class="fas fa-edit"></i>
+        </button> 
+        <label>Profile Picture:</label><br>
+            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" width="150" alt="Current Profile Picture"><br>
+        
+        <br>
+        
+        <p><strong>ID Number:</strong> {{ user.userId }}</p>
+        <p><strong>Course:</strong> {{ user.course }}</p>
+        <p><strong>Year Level:</strong> {{ user.yearlvl }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+    </div>
+
+    <div class="w3-card" style="position: absolute; top: 38%; left: 61%; width: 1180px; height:500px; transform: translate(-50%, -50%);">
+        <h1> Hello </h1>
+    </div>
+{% endblock %}
+

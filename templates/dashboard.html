@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Sit-in Monitoring System</title>
+    <link rel="stylesheet" href="../static/css/w3.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <style>
+         body {
+            font-family: Verdana, sans-serif;
+            background-color: #403b3b;
+        }
+
+        .container {
+        background-color: white;
+        padding: 20px;
+        border: 8px;
+        box-shadow: 0 0 10 rgba(0, 0, 0, 0.1 );
+        width: 700px;   
+        }
+
+        
+
+        /* Style the navigation bar */
+        .navbar {
+        width: 100%;
+        background-color: #403b3b;
+        overflow: auto;
+        }
+
+        /* Navbar links */
+        .navbar a {
+        /* position: fixed; */
+        float: right;
+        text-align: center;
+        padding: 12px;
+        color:#D0A823;
+        text-decoration: none;
+        font-size: 17px;
+        z-index: 1000;
+        }
+
+        /* Navbar links on mouse-over */
+        .navbar a:hover {
+        background-color: #000;
+        }
+
+        /* Current/active navbar link */
+        .active {
+        background-color: #04AA6D;
+        }
+
+        /* Add responsiveness - will automatically display the navbar vertically instead of horizontally on screens less than 500 pixels */
+        @media screen and (max-width: 500px) {
+        .navbar a {
+            float: none;
+            display: block;
+        }
+        }
+        
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 50%;
+            color: white;
+            padding: 20px;
+        }
+
+        .flash {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flash.success {
+            background-color: rgba(40, 167, 69, 0.8);
+        }
+
+        .flash.error {
+            background-color: rgba(220, 53, 69, 0.8);
+        }
+
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 25%;
+            color: black;
+            text-align: center;
+            border: 1px solid black; /* Updated border style */
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar" style="color: #D0A823;">
+            <a href="{{ url_for('information') }}" class="w3-bar-item w3-button">Information</a>
+            <a href="#" class="w3-bar-item w3-button">Remaining Session</a>
+            <a href="#" class="w3-bar-item w3-button">Sit-in Rules</a>
+            <a href="{{ url_for('labrules') }}" class="w3-bar-item w3-button">Lab Rules & Regulation</a>
+            <a href="#" class="w3-bar-item w3-button">Sit-in History</a>
+            <a href="#" class="w3-bar-item w3-button">Registration</a>
+    </div>
+            <div class="footer">
+                <form action="{{ url_for('logout') }}" method="POST">
+                    <button type="submit" class="w3-button" style="margin-left: auto;">Log out</button>
+                </form>
+            </div>
+        </div>
+
+            {% block content %}
+            
+            {% endblock %}
+        </div>
+    
+</body>
+<script>
+    setTimeout(() => {
+        const flashMessages = document.querySelectorAll('.flash');
+        flashMessages.forEach(flash => {
+            flash.style.display = 'none';
+        });
+    }, 3000);
+
+    function w3_open() {
+        document.getElementById("main").style.marginLeft = "25%";
+        document.getElementById("mySidebar"). style.width = "25%";
+        document.getElementById("mySidebar").style.display = "block";
+        document.getElementById("openNav").style.display = 'none';
+    }
+    function w3_close() {
+        document.getElementById("main").style.marginLeft = "0%";
+        document.getElementById("mySidebar").style.display = "none";
+        document.getElementById("openNav").style.display = "inline-block";
+    }
+    
+</script>
+</html>
