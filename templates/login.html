@@ -2,11 +2,35 @@
 {% block content%}
 
 <head>
+    <style>
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
 
+        .flash {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
 </head>
 
 <body>
-
     <div class="container w3-display-middle w3-card" style="width: 700px; 
     background: rgba(255, 255, 255, 0.2); 
     backdrop-filter: blur(10px); 
@@ -19,7 +43,7 @@
     transform: translate(-50%, -50%);">
 
         <div class="row">
-            <div class="logo w3-half w3-container ">
+            <div class="logo w3-half w3-container">
                 <h6> </h6>
                 <img src="{{ url_for('static', filename='image/CCS_LOGO.png') }}" alt="CCS Logo" style="width: 300px; height: 300px;">
                 <h5 style="text-align: center;"> Sit-in Management System </h5>
@@ -28,25 +52,25 @@
             <div class="login w3-half">
                 <h2 style="color: white;">Login</h2>
                 <form class="w3-container w3-padding-16 w3-margin-center" method="POST" action="{{ url_for('login') }}">
-                <input type="text" name="uname" id="uname" placeholder="Enter username" required> <br><br>
-                <input type="password" name="password" id="password" placeholder="Enter password" required> <br><br>
-                <button class="w3-block w3-ripple" type="submit">Login</button>
-                <h6>Don't have an account? <a href="{{ url_for('register') }}" class="btn rgstr w3-text-blue w3-margin-center">Register</a></h6>  
-            </form>
+                    <input type="text" name="username" id="username" placeholder="Enter username" required> <br><br>
+                    <input type="password" name="password" id="password" placeholder="Enter password" required> <br><br>
+                    <button class="w3-block w3-ripple" type="submit">Login</button>
+                    <h6>Don't have an account? <a href="{{ url_for('register') }}" class="btn rgstr w3-text-blue w3-margin-center">Register</a></h6>  
+                </form>
             </div>
-            
         </div>
     </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash {{ category }}">
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     {% endwith %}
 </body>
 {% endblock %}

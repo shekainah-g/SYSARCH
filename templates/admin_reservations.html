@@ -1,0 +1,273 @@
+{% extends "admin.html" %}
+
+{% block content %}
+<div class="w3-container">
+    <h2><i class="fas fa-calendar-check"></i> Pending Reservations</h2>
+    
+    <div class="w3-row-padding">
+        <div class="w3-col m12">
+            <div class="w3-card w3-padding">
+                <div class="w3-bar w3-margin-bottom">
+                    <select class="w3-select w3-border" id="labFilter">
+                        <option value="">All Laboratories</option>
+                        <option value="530">Lab 530</option>
+                        <option value="540">Lab 540</option>
+                        <option value="544">Lab 544</option>
+                        <option value="542">Lab 542</option>
+                        <option value="526">Lab 526</option>
+                    </select>
+                </div>
+                
+                <div id="reservationsList">
+                    {% if reservations %}
+                        <table class="w3-table w3-striped w3-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Course & Year</th>
+                                    <th>Laboratory</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Purpose</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reservation in reservations %}
+                                    <tr>
+                                        <td>{{ reservation.user_id }}</td>
+                                        <td>{{ reservation.student_name }}</td>
+                                        <td>{{ reservation.course }} - {{ reservation.yearlvl }}</td>
+                                        <td>Lab {{ reservation.laboratory }}</td>
+                                        <td>{{ reservation.reservation_date }}</td>
+                                        <td>{{ reservation.start_time }} - {{ reservation.end_time }}</td>
+                                        <td>{{ reservation.purpose }}</td>
+                                        <td>
+                                            <button class="w3-button w3-green" onclick="updateReservation({{ reservation.id }}, 'approved')">
+                                                <i class="fas fa-check"></i> Approve
+                                            </button>
+                                            <button class="w3-button w3-red" onclick="updateReservation({{ reservation.id }}, 'rejected')">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="w3-panel w3-pale-yellow w3-border">
+                            <p><i class="fas fa-info-circle"></i> No pending reservations found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.w3-container {
+    padding: 20px;
+}
+
+.w3-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.w3-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.w3-table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.w3-table th {
+    background: #8a3cfe;
+    color: white;
+    font-weight: 500;
+    padding: 15px;
+}
+
+.w3-table td {
+    padding: 12px 15px;
+    vertical-align: middle;
+}
+
+.w3-table tr:hover {
+    background: #f8f9fa;
+}
+
+.w3-button {
+    border-radius: 6px;
+    padding: 8px 16px;
+    margin: 0 4px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.w3-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.w3-button.w3-green {
+    background-color: #2ecc71;
+}
+
+.w3-button.w3-green:hover {
+    background-color: #27ae60;
+}
+
+.w3-button.w3-red {
+    background-color: #e74c3c;
+}
+
+.w3-button.w3-red:hover {
+    background-color: #c0392b;
+}
+
+.w3-select {
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.w3-select:focus {
+    border-color: #8a3cfe;
+    box-shadow: 0 0 5px rgba(138,60,254,0.3);
+}
+
+.w3-panel {
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.w3-panel i {
+    margin-right: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const labFilter = document.getElementById('labFilter');
+    
+    // Load pending reservations
+    function loadReservations() {
+        const laboratory = labFilter.value;
+        
+        fetch('/admin/reservations' + (laboratory ? `?laboratory=${laboratory}` : ''))
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                const container = document.getElementById('reservationsList');
+                container.innerHTML = '';
+                
+                if (data.reservations.length === 0) {
+                    container.innerHTML = `
+                        <div class="w3-panel w3-pale-yellow w3-border">
+                            <p><i class="fas fa-info-circle"></i> No pending reservations found.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const table = document.createElement('table');
+                table.className = 'w3-table w3-striped w3-bordered';
+                
+                // Create table header
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Course & Year</th>
+                        <th>Laboratory</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Purpose</th>
+                        <th>Action</th>
+                    </tr>
+                `;
+                table.appendChild(thead);
+                
+                // Create table body
+                const tbody = document.createElement('tbody');
+                data.reservations.forEach(reservation => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${reservation.user_id}</td>
+                        <td>${reservation.student_name}</td>
+                        <td>${reservation.course} - ${reservation.yearlvl}</td>
+                        <td>Lab ${reservation.laboratory}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.start_time} - ${reservation.end_time}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>
+                            <button class="w3-button w3-green" onclick="updateReservation(${reservation.id}, 'approved')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="w3-button w3-red" onclick="updateReservation(${reservation.id}, 'rejected')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                
+                container.appendChild(table);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+    
+    // Update reservation status
+    window.updateReservation = function(reservationId, status) {
+        if (!confirm(`Are you sure you want to ${status} this reservation?`)) {
+            return;
+        }
+
+        fetch('/admin/update_reservation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reservation_id: reservationId,
+                status: status
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                const message = status === 'approved' ? 'Reservation approved successfully!' : 'Reservation rejected.';
+                alert(message);
+                loadReservations();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    };
+    
+    // Load initial reservations
+    loadReservations();
+    
+    // Reload when lab filter changes
+    labFilter.addEventListener('change', loadReservations);
+});
+</script>
+{% endblock %} 

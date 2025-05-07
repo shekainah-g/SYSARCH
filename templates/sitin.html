@@ -1,0 +1,127 @@
+{% extends 'admin.html'%}
+{% block content %}
+
+<div class="w3-container" style="padding: 20px;">
+    <h2>Current Sit-ins</h2>
+    
+    <!-- Current Sit-ins Table -->
+    <div class="w3-responsive">
+        <table class="w3-table w3-striped w3-bordered">
+            <thead>
+                <tr></tr>
+                    <th>Name</th>
+                    <th>Purpose</th>
+                    <th>Laboratory</th>
+                    <th>Time In</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="currentSitins">
+                {% for sitin in current_sitins %}
+                <tr data-student-id="{{ sitin.student_id }}">
+
+                    <td>{{ sitin.name }}</td>
+                    <td>{{ sitin.purpose }}</td>
+                    <td>{{ sitin.laboratory }}</td>
+                    <td>{{ sitin.time_in }}</td>
+                    <td>
+                        <button onclick="logoutStudent('{{ sitin.student_id }}')" class="w3-button w3-red">Logout</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Function to handle student logout
+function logoutStudent(studentId) {
+    if (confirm('Are you sure you want to logout this student?')) {
+        fetch('/log_out_student', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ student_id: studentId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+                if (row) {
+                    row.remove();
+                }
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error logging out student');
+        });
+    }
+}
+
+// Function to update current sit-ins table
+function updateCurrentSitins() {
+    fetch('/get_current_sitins')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const tbody = document.getElementById('currentSitins');
+            tbody.innerHTML = '';
+            
+            data.sitins.forEach(sitin => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-student-id', sitin.student_id);
+                row.innerHTML = `
+                    <td>${sitin.name}</td>
+                    <td>${sitin.purpose}</td>
+                    <td>${sitin.laboratory}</td>
+                    <td>${sitin.time_in}</td>
+                    <td>
+                        <button onclick="logoutStudent('${sitin.student_id}')" class="w3-button w3-red">Logout</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// Update current sit-ins every 30 seconds
+setInterval(updateCurrentSitins, 30000);
+</script>
+
+<style>
+.w3-table {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.w3-table th {
+    background: #f5f5f5;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.w3-table tr:hover {
+    background: #f9f9f9;
+}
+
+.w3-button {
+    transition: all 0.3s ease;
+}
+
+.w3-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+</style>
+{% endblock %}

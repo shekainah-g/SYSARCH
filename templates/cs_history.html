@@ -1,0 +1,229 @@
+{% extends 'admin.html' %}
+{% block content %}
+
+<div class="w3-container" style="padding: 20px;">
+    <h2>Current Sit-in History</h2>
+    
+    <!-- Search and Filter Section -->
+    <div class="w3-card w3-padding w3-margin-bottom">
+        <div class="w3-row">
+            <!-- <div class="w3-col m6">
+                <input type="text" id="searchInput" class="w3-input w3-border" placeholder="Search by student ID or name...">
+            </div> -->
+            <div class="w3-col m3">
+                <select id="labFilter" class="w3-input w3-border">
+                    <option value="">All Laboratories</option>
+                    <option value="530">Lab 530</option>
+                    <option value="540">Lab 540</option>
+                    <option value="544">Lab 544</option>
+                    <option value="542">Lab 542</option>
+                    <option value="526">Lab 526</option>
+                </select>
+            </div>
+            <div class="w3-col m3">
+                <input type="date" id="dateFilter" class="w3-input w3-border" value="{{ today }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="w3-responsive">
+        <table class="w3-table w3-striped w3-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Purpose</th>
+                    <th>Laboratory</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Points</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="historyTable">
+                {% for record in history %}
+                <tr>
+                    <td>{{ record.student_name }}</td>
+                    <td>{{ record.purpose }}</td>
+                    <td>{{ record.laboratory }}</td>
+                    <td>{{ record.time_in }}</td>
+                    <td>{{ record.time_out }}</td>
+                    <td>{{ record.points or 0 }}</td>
+                    <td>
+                        <button onclick="openPointsModal('{{ record.student_id }}', '{{ record.student_name }}', {{ record.points or 0 }})" class="w3-button w3-green">
+                            <i class="fa fa-plus"></i> Add Points
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Points Modal -->
+<div id="pointsModal" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width: 500px;">
+        <div class="w3-container">
+            <span onclick="closePointsModal()" class="w3-button w3-display-topright">&times;</span>
+            <h3>Add Points</h3>
+            <form id="pointsForm">
+                <input type="hidden" id="studentId">
+                <div class="w3-margin-bottom">
+                    <label>Student Name:</label>
+                    <input type="text" id="studentName" class="w3-input w3-border" readonly>
+                </div>
+                <div class="w3-margin-bottom">
+                    <label>Current Points:</label>
+                    <input type="text" id="currentPoints" class="w3-input w3-border" readonly>
+                </div>
+                <div class="w3-margin-bottom">
+                    <label>Points to Add:</label>
+                    <input type="number" id="pointsToAdd" class="w3-input w3-border" min="1" required>
+                </div>
+                <button type="submit" class="w3-button w3-green">
+                    <i class="fa fa-plus"></i> Add Points
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('searchInput').addEventListener('keyup', filterTable);
+document.getElementById('labFilter').addEventListener('change', filterTable);
+document.getElementById('dateFilter').addEventListener('change', filterTable);
+
+function filterTable() {
+    const searchText = document.getElementById('searchInput').value.toLowerCase();
+    const labFilter = document.getElementById('labFilter').value.toLowerCase();
+    const dateFilter = document.getElementById('dateFilter').value;
+    
+    const rows = document.getElementById('historyTable').getElementsByTagName('tr');
+    
+    for (let row of rows) {
+        const studentId = row.cells[0].textContent.toLowerCase();
+        const studentName = row.cells[1].textContent.toLowerCase();
+        const laboratory = row.cells[3].textContent.toLowerCase();
+        const date = row.cells[5].textContent.split(' ')[0]; // Get date part from time_out
+        
+        const matchesSearch = studentId.includes(searchText) || studentName.includes(searchText);
+        const matchesLab = !labFilter || laboratory === labFilter;
+        const matchesDate = !dateFilter || date === dateFilter;
+        
+        row.style.display = matchesSearch && matchesLab && matchesDate ? '' : 'none';
+    }
+}
+
+// Function to update the table with fresh data
+function updateTable() {
+    fetch('/get_today_history')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const tbody = document.getElementById('historyTable');
+            tbody.innerHTML = '';
+            
+            data.history.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.student_id}</td>
+                    <td>${record.student_name}</td>
+                    <td>${record.purpose}</td>
+                    <td>${record.laboratory}</td>
+                    <td>${record.time_in}</td>
+                    <td>${record.time_out}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// Update table every 30 seconds
+setInterval(updateTable, 30000);
+
+function openPointsModal(studentId, studentName, currentPoints) {
+    document.getElementById('studentId').value = studentId;
+    document.getElementById('studentName').value = studentName;
+    document.getElementById('currentPoints').value = currentPoints;
+    document.getElementById('pointsModal').style.display = 'block';
+}
+
+function closePointsModal() {
+    document.getElementById('pointsModal').style.display = 'none';
+}
+
+document.getElementById('pointsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const studentId = document.getElementById('studentId').value;
+    const pointsToAdd = parseInt(document.getElementById('pointsToAdd').value);
+    
+    fetch('/add_points', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            points: pointsToAdd
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closePointsModal();
+            location.reload(); // Refresh the page to show updated points
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding points');
+    });
+});
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target == document.getElementById('pointsModal')) {
+        closePointsModal();
+    }
+}
+</script>
+
+<style>
+.w3-table {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.w3-table th {
+    background: #f5f5f5;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.w3-table tr:hover {
+    background: #f9f9f9;
+}
+
+.w3-card {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+#searchInput, #labFilter, #dateFilter {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

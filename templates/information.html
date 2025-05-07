@@ -1,23 +1,542 @@
 {% extends 'dashboard.html' %}
 {% block content %}
 
-    <div  class="container w3-card" style="position: absolute; top: 38%; left: 12%; width: 335px; height:500px; transform: translate(-50%, -50%);">
-        <button type="button" class="w3-bar-item w3-button" onclick="location.href='{{ url_for('edit_profile') }}'">
-            <i class="fas fa-edit"></i>
-        </button> 
-        <label>Profile Picture:</label><br>
-            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" width="150" alt="Current Profile Picture"><br>
-        
-        <br>
-        
-        <p><strong>ID Number:</strong> {{ user.userId }}</p>
-        <p><strong>Course:</strong> {{ user.course }}</p>
-        <p><strong>Year Level:</strong> {{ user.yearlvl }}</p>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-    </div>
+<div class="w3-container info-container">
+    <div class="w3-row">
+        <!-- Student Information Column -->
+        <div class="w3-col l6 m12 s12">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <h2 style="color: black;"><i class="fas fa-user-circle" style="color: black"></i> Student Profile</h2>
+                    <button type="button" class="edit-button" onclick="window.location.href='{{ url_for('edit_profile') }}'">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </button>
+                </div>
+                
+                <div class="profile-content">
+                    <div class="profile-image-container">
+                        {% if user.profile_pic %}
+                            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="Profile Picture" class="profile-image">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='uploads/profile.jpg') }}" alt="Default Profile Picture" class="profile-image">
+                        {% endif %}
+                    </div>
+                    
+                    <div class="student-info">
+                        <h3 class="student-name">{{ user.firstname }} {{ user.lastname }}</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <i class="fas fa-id-card"></i>
+                                <div class="info-content">
+                                    <label>ID Number</label>
+                                    <p>{{ user.id }}</p>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-graduation-cap"></i>
+                                <div class="info-content">
+                                    <label>Course</label>
+                                    <p>{{ user.course }}</p>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <div class="info-content">
+                                    <label>Year Level</label>
+                                    <p>{{ user.yearlvl }}</p>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-envelope"></i>
+                                <div class="info-content">
+                                    <label>Email</label>
+                                    <p>{{ user.email }}</p>
+                                </div>
+                            </div>
+                            <div class="info-item highlight">
+                                <i class="fas fa-clock"></i>
+                                <div class="info-content">
+                                    <label>Time Remaining</label>
+                                    <p><span id="timeRemaining">{{ user.remaining_hours }}</span> hours</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <div class="w3-card" style="position: absolute; top: 38%; left: 61%; width: 1180px; height:500px; transform: translate(-50%, -50%);">
-        <h1> Hello </h1>
+        <!-- Announcements Column -->
+        <div class="w3-col l6 m12 s12">
+            <div class="announcements-card">
+                <div class="announcements-header">
+                    <h2 style="color: black;"><i class="fas fa-bullhorn" style="color: black;"></i> Announcements</h2>
+                </div>
+                <div class="announcements-content">
+                    {% if announcements %}
+                        {% for announcement in announcements %}
+                            <div class="announcement-item">
+                                <div class="announcement-icon">
+                                    <i class="fas fa-bell"></i>
+                                </div>
+                                <div class="announcement-text">
+                                    <p>{{ announcement.announcement }}</p>
+                                    <small>{{ announcement.date_created }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-announcements">
+                            <i class="fas fa-info-circle"></i>
+                            <p>No announcements available.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
+</div>
+
+<style>
+.info-container {
+    padding: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Profile Card Styles */
+.profile-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    margin-bottom: 30px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.profile-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.profile-card:hover .profile-header::before {
+    transform: translateX(100%);
+}
+
+.profile-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.edit-button {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.edit-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.edit-button:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+}
+
+.edit-button:hover::before {
+    transform: translateX(100%);
+}
+
+.profile-content {
+    padding: 30px;
+    position: relative;
+}
+
+.profile-image-container {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.profile-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #2c3e50;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.student-name {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+    font-size: 1.8rem;
+    position: relative;
+    display: inline-block;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.student-name::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #2c3e50, transparent);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.profile-card:hover .student-name::after {
+    transform: scaleX(1);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.info-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(44, 62, 80, 0.05) 0%, rgba(44, 62, 80, 0) 100%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.info-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.info-item:hover::before {
+    transform: translateX(100%);
+}
+
+.info-item i {
+    font-size: 1.5rem;
+    color: #2c3e50;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(44, 62, 80, 0.1);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.info-item:hover i {
+    transform: scale(1.1);
+    background: rgba(44, 62, 80, 0.15);
+}
+
+.info-content {
+    flex: 1;
+}
+
+.info-content label {
+    display: block;
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    transition: color 0.3s ease;
+}
+
+.info-item:hover .info-content label {
+    color: #2c3e50;
+}
+
+.info-content p {
+    margin: 0;
+    color: #2c3e50;
+    font-weight: 500;
+    transition: transform 0.3s ease;
+}
+
+.info-item:hover .info-content p {
+    transform: translateX(5px);
+}
+
+.info-item.highlight {
+    background: #e8f4fd;
+}
+
+.info-item.highlight i {
+    color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+}
+
+/* Announcements Card Styles */
+.announcements-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    height: 100%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.announcements-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.announcements-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.announcements-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.announcements-card:hover .announcements-header::before {
+    transform: translateX(100%);
+}
+
+.announcements-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.announcements-content {
+    padding: 20px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.announcement-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.announcement-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(44, 62, 80, 0.05) 0%, rgba(44, 62, 80, 0) 100%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.announcement-item:hover {
+    background: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.announcement-item:hover::before {
+    transform: translateX(100%);
+}
+
+.announcement-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(44, 62, 80, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2c3e50;
+    transition: all 0.3s ease;
+}
+
+.announcement-item:hover .announcement-icon {
+    transform: scale(1.1);
+    background: rgba(44, 62, 80, 0.15);
+}
+
+.announcement-text {
+    flex: 1;
+}
+
+.announcement-text p {
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+    transition: transform 0.3s ease;
+}
+
+.announcement-item:hover .announcement-text p {
+    transform: translateX(5px);
+}
+
+.announcement-text small {
+    color: #666;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.announcement-item:hover .announcement-text small {
+    color: #2c3e50;
+}
+
+.no-announcements {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.no-announcements i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    transition: transform 0.3s ease;
+}
+
+.no-announcements:hover i {
+    transform: scale(1.1);
+}
+
+/* Custom Scrollbar */
+.announcements-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.announcements-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.announcements-content::-webkit-scrollbar-thumb {
+    background: #2c3e50;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.announcements-content::-webkit-scrollbar-thumb:hover {
+    background: #34495e;
+}
+
+/* Main Content Row */
+.w3-row {
+    margin: 0 -15px;
+}
+
+.w3-col {
+    padding: 0 15px;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .info-container {
+        padding: 20px;
+    }
+    
+    .w3-col {
+        margin-bottom: 30px;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-content {
+        padding: 20px;
+    }
+    
+    .student-name {
+        font-size: 1.5rem;
+    }
+}
+</style>
+
 {% endblock %}
 

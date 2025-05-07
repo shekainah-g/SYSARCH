@@ -1,0 +1,271 @@
+{% extends 'admin.html' %}
+{% block content %}
+
+<div class="w3-container" style="padding: 20px;">
+    <h2>Student List</h2>
+    
+    <!-- Download Buttons -->
+    <div class="w3-bar w3-margin-bottom">
+        <a href="{{ url_for('download_student_list', format='pdf') }}" class="w3-button w3-red">
+            <i class="fa fa-file-pdf-o"></i> Download PDF
+        </a>
+        <a href="{{ url_for('download_student_list', format='docx') }}" class="w3-button w3-blue">
+            <i class="fa fa-file-word-o"></i> Download Word
+        </a>
+        <a href="{{ url_for('download_student_list', format='xlsx') }}" class="w3-button w3-green">
+            <i class="fa fa-file-excel-o"></i> Download Excel
+        </a>
+    </div>
+    
+    <!-- Charts Section -->
+    <div class="w3-row-padding w3-margin-bottom">
+        <div class="w3-third">
+            <div class="w3-card w3-padding">
+                <h3>Year Level Distribution</h3>
+                <canvas id="yearChart"></canvas>
+            </div>
+        </div>
+        <div class="w3-third">
+            <div class="w3-card w3-padding">
+                <h3>Course Distribution</h3>
+                <canvas id="courseChart"></canvas>
+            </div>
+        </div>
+        <div class="w3-third">
+            <div class="w3-card w3-padding">
+                <h3>Purpose Distribution</h3>
+                <canvas id="purposeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search and Filter Section -->
+    <div class="w3-row-padding w3-margin-bottom">
+        <div class="w3-col m4">
+            <form id="searchForm" class="w3-bar">
+                <input type="text" id="searchInput" class="w3-input w3-border" placeholder="Search by ID or name...">
+                <button type="submit" class="w3-button w3-blue">
+                    <i class="fa fa-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="w3-col m4">
+            <select id="courseFilter" class="w3-select w3-border">
+                <option value="">All Courses</option>
+                <option value="BSIT">BSIT</option>
+                <option value="BSCS">BSCS</option>
+                <option value="BSIS">BSIS</option>
+            </select>
+        </div>
+        <div class="w3-col m4">
+            <select id="yearFilter" class="w3-select w3-border">
+                <option value="">All Years</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Student List Table -->
+    <div class="w3-row-padding">
+        <div class="w3-col m12">
+            <div class="w3-card w3-padding">
+                <table class="w3-table w3-striped w3-bordered" id="studentTable">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Course</th>
+                            <th>Year Level</th>
+                            <th>Remaining Sessions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.firstname }} {{ user.lastname }}</td>
+                                <td>{{ user.course }}</td>
+                                <td>{{ user.yearlvl }}</td>
+                                <td>{{ user.remaining_sessions }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts
+    const yearCtx = document.getElementById('yearChart').getContext('2d');
+    const courseCtx = document.getElementById('courseChart').getContext('2d');
+    const purposeCtx = document.getElementById('purposeChart').getContext('2d');
+    
+    // Year Level Chart
+    new Chart(yearCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ year_stats|map(attribute='year')|list|tojson }},
+            datasets: [{
+                data: {{ year_stats|map(attribute='count')|list|tojson }},
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Course Chart
+    new Chart(courseCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ course_stats|map(attribute='course')|list|tojson }},
+            datasets: [{
+                data: {{ course_stats|map(attribute='count')|list|tojson }},
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Purpose Chart
+    new Chart(purposeCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ purpose_stats|map(attribute='purpose')|list|tojson }},
+            datasets: [{
+                data: {{ purpose_stats|map(attribute='count')|list|tojson }},
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF',
+                    '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Search and filter functionality
+    const searchInput = document.getElementById('searchInput');
+    const courseFilter = document.getElementById('courseFilter');
+    const yearFilter = document.getElementById('yearFilter');
+    const table = document.getElementById('studentTable');
+    const rows = table.getElementsByTagName('tr');
+    
+    function filterTable() {
+        const searchText = searchInput.value.toLowerCase();
+        const courseValue = courseFilter.value;
+        const yearValue = yearFilter.value;
+        
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cells = row.getElementsByTagName('td');
+            const id = cells[0].textContent.toLowerCase();
+            const name = cells[1].textContent.toLowerCase();
+            const course = cells[2].textContent;
+            const year = cells[3].textContent;
+            
+            const matchesSearch = id.includes(searchText) || name.includes(searchText);
+            const matchesCourse = !courseValue || course === courseValue;
+            const matchesYear = !yearValue || year === yearValue;
+            
+            row.style.display = matchesSearch && matchesCourse && matchesYear ? '' : 'none';
+        }
+    }
+    
+    searchInput.addEventListener('keyup', filterTable);
+    courseFilter.addEventListener('change', filterTable);
+    yearFilter.addEventListener('change', filterTable);
+});
+</script>
+
+<style>
+.w3-table {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.w3-table th {
+    background: #f5f5f5;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.w3-table tr:hover {
+    background: #f9f9f9;
+}
+
+.w3-card {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+#searchInput, #courseFilter, #yearFilter {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#searchForm {
+    display: flex;
+    gap: 10px;
+}
+
+#searchInput {
+    flex: 1;
+}
+
+#searchForm button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+#searchForm button:hover {
+    background-color: #0056b3 !important;
+}
+</style>
+{% endblock %}

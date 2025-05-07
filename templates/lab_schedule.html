@@ -1,0 +1,169 @@
+{% extends 'admin.html' %}
+{% block content %}
+
+<div class="w3-container" style="padding: 20px;">
+    <h2>Lab Schedule Management</h2>
+    
+    <!-- Add Schedule Form -->
+    <div class="w3-card w3-padding" style="max-width: 800px; margin: 20px auto;">
+        <h3>Add New Schedule</h3>
+        <form id="scheduleForm" action="{{ url_for('add_lab_schedule') }}" method="POST">
+            <div class="w3-row-padding">
+                <div class="w3-half w3-margin-bottom">
+                    <label for="laboratory">Laboratory:</label>
+                    <select id="laboratory" name="laboratory" class="w3-input w3-border" required>
+                        <option value="530">Lab 530</option>
+                        <option value="540">Lab 540</option>
+                        <option value="544">Lab 544</option>
+                        <option value="542">Lab 542</option>
+                        <option value="526">Lab 526</option>
+                    </select>
+                </div>
+                
+                <div class="w3-half w3-margin-bottom">
+                    <label>Days of Week:</label>
+                    <div class="w3-padding-small">
+                        <label for="day-monday">
+                            <input type="checkbox" id="day-monday" name="days" value="Monday"> Monday
+                        </label>
+                        <label for="day-tuesday">
+                            <input type="checkbox" id="day-tuesday" name="days" value="Tuesday"> Tuesday
+                        </label>
+                        <label for="day-wednesday">
+                            <input type="checkbox" id="day-wednesday" name="days" value="Wednesday"> Wednesday
+                        </label>
+                        <label for="day-thursday">
+                            <input type="checkbox" id="day-thursday" name="days" value="Thursday"> Thursday
+                        </label>
+                        <label for="day-friday">
+                            <input type="checkbox" id="day-friday" name="days" value="Friday"> Friday
+                        </label>
+                        <label for="day-saturday">
+                            <input type="checkbox" id="day-saturday" name="days" value="Saturday"> Saturday
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-row-padding">
+                <div class="w3-half w3-margin-bottom">
+                    <label for="start_time">Start Time:</label>
+                    <input type="time" id="start_time" name="start_time" class="w3-input w3-border" required>
+                </div>
+                
+                <div class="w3-half w3-margin-bottom">
+                    <label for="end_time">End Time:</label>
+                    <input type="time" id="end_time" name="end_time" class="w3-input w3-border" required>
+                </div>
+            </div>
+
+            <div class="w3-margin-bottom">
+                <label for="subject">Subject:</label>
+                <input type="text" id="subject" name="subject" class="w3-input w3-border" required 
+                       placeholder="e.g., Database Systems">
+            </div>
+
+            <div class="w3-margin-bottom">
+                <label for="instructor">Instructor:</label>
+                <input type="text" id="instructor" name="instructor" class="w3-input w3-border" required 
+                       placeholder="e.g., Prof. Smith">
+            </div>
+
+            <div class="w3-margin-bottom">
+                <label for="description">Description (Optional):</label>
+                <textarea id="description" name="description" class="w3-input w3-border" 
+                          placeholder="e.g., Regular laboratory class for BSCS students"></textarea>
+            </div>
+
+            <button type="submit" class="w3-button w3-blue w3-round">
+                <i class="fas fa-plus"></i> Add Schedule
+            </button>
+        </form>
+    </div>
+
+    <!-- Current Schedules Table -->
+    <div class="w3-card w3-padding" style="margin-top: 20px;">
+        <h3>Current Schedules</h3>
+        <div class="w3-responsive">
+            <table class="w3-table w3-striped w3-bordered">
+                <thead>
+                    <tr>
+                        <th>Laboratory</th>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Subject</th>
+                        <th>Instructor</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                    <tr>
+                        <td>Lab {{ schedule.laboratory }}</td>
+                        <td>{{ schedule.day_of_week }}</td>
+                        <td>{{ schedule.start_time }} - {{ schedule.end_time }}</td>
+                        <td>{{ schedule.subject }}</td>
+                        <td>{{ schedule.instructor }}</td>
+                        <td>{{ schedule.description or 'N/A' }}</td>
+                        <td>
+                            <button onclick="editSchedule('{{ schedule.id }}')" 
+                                    class="w3-button w3-blue w3-small">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteSchedule('{{ schedule.id }}')" 
+                                    class="w3-button w3-red w3-small">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function editSchedule(id) {
+    // TODO: Implement edit functionality
+    alert('Edit schedule ' + id);
+}
+
+function deleteSchedule(id) {
+    if (confirm('Are you sure you want to delete this schedule?')) {
+        fetch(`/delete_lab_schedule/${id}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting schedule');
+            }
+        });
+    }
+}
+
+// Form validation
+document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+    const startTime = document.querySelector('input[name="start_time"]').value;
+    const endTime = document.querySelector('input[name="end_time"]').value;
+    const selectedDays = document.querySelectorAll('input[name="days"]:checked');
+    
+    if (startTime >= endTime) {
+        e.preventDefault();
+        alert('End time must be after start time');
+        return;
+    }
+    
+    if (selectedDays.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one day');
+        return;
+    }
+});
+</script>
+
+{% endblock %} 

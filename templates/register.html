@@ -1,11 +1,6 @@
 {% extends 'index.html' %}
 {% block content %}
 <head>
-    <script>
-        function duplicateText() {
-            document.getElementById("uname").value = document.getElementById("idno").value;
-        }
-    </script>
     <style>
         .form-container {
             width: 1200px;
@@ -22,7 +17,7 @@
 
         .form-row {
             display: flex;
-            gap: 20px; /* Adds space between columns */
+            gap: 20px;
         }
 
         .form-column {
@@ -38,7 +33,7 @@
         }
 
         label {
-        color: white;
+            color: white;
         }
 
         button {
@@ -55,6 +50,26 @@
         button:hover {
             background-color: #45a049;
         }
+
+        .flash-messages {
+            margin-top: 20px;
+        }
+
+        .flash {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
     </style>
 </head>
 
@@ -62,13 +77,11 @@
     <div class="form-container">
         <h2 style="color: white;">Registration Form</h2>
         <form method="POST" action="{{ url_for('register') }}">
-            
-           
             <div class="form-row">
                 <!-- Left Column -->
                 <div class="form-column">
-                    <label for="idno">ID Number:</label>
-                    <input type="text" id="idno" name="idno" required onkeyup="duplicateText()"><br>
+                    <label for="id">Student-Id:</label>
+                    <input type="text" id="id" name="id" required><br>
 
                     <label for="lastname">Last Name:</label>
                     <input type="text" id="lastname" name="lastname" required><br>
@@ -82,13 +95,11 @@
                     <label for="course">Course:</label>
                     <select id="course" name="course" required>
                         <option value="" disabled selected>Select your course</option>
-                        <option value="Computer Science">Computer Science</option>
-                        <option value="Information Technology">Information Technology</option>
-                        <option value="Engineering">Engineering</option>
-                        <option value="Business Administration">Business Administration</option>
-                        <option value="Nursing">Nursing</option>
-                        <option value="Psychology">Psychology</option>
-                        <option value="Computer Engineering">Computer Engineering</option>
+                        <option value="BSIT">BSIT</option>
+                        <option value="BSCS">BSCS</option>
+                        <option value="BSCE">BSCE</option>
+                        <option value="BSIS">BSIS</option>
+                        <option value="BSCPE">BSCPE</option>
                     </select><br>
                 </div>
 
@@ -103,11 +114,11 @@
                         <option value="4">4th Year</option>
                     </select><br>
 
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required><br>
+
                     <label for="email">Email:</label>
                     <input type="email" id="email" name="email" required><br>
-
-                    <label for="uname">Username:</label>
-                    <input type="text" id="uname" name="uname" required><br>
 
                     <label for="password">Password:</label>
                     <input type="password" id="password" name="password" required><br>
@@ -115,7 +126,6 @@
                     <button type="submit">Register</button>
                 </div>
             </div>
-
         </form>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -130,5 +140,17 @@
             {% endif %}
         {% endwith %}
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const studentIdInput = document.getElementById("id");
+            const usernameInput = document.getElementById("username");
+    
+            studentIdInput.addEventListener("input", function() {
+                usernameInput.value = studentIdInput.value;
+            });
+        });
+    </script>
+    
 </body>
 {% endblock %}

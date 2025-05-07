@@ -1,14 +1,14 @@
 {%extends 'dashboard.html'%}
 {%block content%}
-<div class="container w3-card w3-padding" style="margin: 50px auto; max-width: 600px; background-color: white; border-radius: 10px;">
+<div class="edit_container w3-card w3-padding" style="margin: 50px auto; max-width: 600px; background-color: white; border-radius: 10px;">
     <h2 class="w3-center">Edit Profile</h2>
     
-    <form action="{{ url_for('edit_profile') }}" method="POST">
+    <form action="{{ url_for('edit_profile') }}" method="POST" enctype="multipart/form-data">
 
         <div class="w3-margin-bottom">
             <label>Profile Picture:</label><br>
             <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" width="150" alt="Current Profile Picture"><br>
-            <input type="file" name="profile_pic"><br><br> 
+            <input type="file" name="profile_pic" accept="image/*"><br><br> 
         </div>
 
         <div class="w3-margin-bottom">

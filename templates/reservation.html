@@ -1,0 +1,516 @@
+{% extends "dashboard.html" %}
+
+{% block content %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+    font-family: 'Poppins', sans-serif;
+}
+
+.w3-container h2 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 25px;
+}
+
+.w3-card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    background: white;
+}
+
+.w3-input, .w3-select {
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 10px;
+    transition: all 0.3s ease;
+}
+
+.w3-input:focus, .w3-select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52,152,219,0.3);
+}
+
+.w3-button {
+    border-radius: 5px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.w3-button.w3-blue {
+    background-color: #3498db !important;
+}
+
+.w3-button.w3-blue:hover {
+    background-color: #2980b9 !important;
+}
+
+.computer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.computer-item {
+    background: white;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.computer-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.computer-item.available {
+    border-color: #2ecc71;
+}
+
+.computer-item.unavailable {
+    background: #f8f9fa;
+    color: #95a5a6;
+    cursor: not-allowed;
+}
+
+.computer-item.selected {
+    background: #2ecc71;
+    color: white;
+    border-color: #27ae60;
+}
+
+.w3-table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.w3-table th {
+    background-color: #3498db;
+    color: white;
+    font-weight: 500;
+    padding: 15px;
+}
+
+.w3-table td {
+    padding: 12px 15px;
+    vertical-align: middle;
+}
+
+.w3-tag {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.85em;
+}
+
+.w3-tag.w3-yellow {
+    background-color: #f1c40f !important;
+    color: #2c3e50;
+}
+
+.w3-tag.w3-green {
+    background-color: #2ecc71 !important;
+    color: white;
+}
+
+.w3-tag.w3-red {
+    background-color: #e74c3c !important;
+    color: white;
+}
+
+#statusFilter {
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: 1px solid #e0e0e0;
+    font-size: 0.95em;
+    width: 200px;
+}
+
+.w3-panel {
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.w3-panel h3 {
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.w3-panel p {
+    margin: 0;
+    font-size: 0.95em;
+}
+
+.w3-red {
+    background-color: #e74c3c !important;
+}
+
+.w3-yellow {
+    background-color: #f1c40f !important;
+}
+
+.w3-yellow h3, .w3-yellow p {
+    color: #2c3e50 !important;
+}
+
+/* Custom scrollbar */
+.computer-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.computer-grid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.computer-grid::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 4px;
+}
+
+.computer-grid::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+}
+</style>
+
+<div class="w3-container" style="padding: 20px;">
+    <h2>Make a Reservation</h2>
+    
+    <!-- Add error message container -->
+    <div id="errorMessage" class="w3-panel w3-red w3-display-container" style="display: none;">
+        <span onclick="this.parentElement.style.display='none'" class="w3-button w3-red w3-large w3-display-topright">&times;</span>
+        <h3 style="color: white;">Error</h3>
+        <p style="color: white;" id="errorText"></p>
+    </div>
+    
+    <div class="w3-card w3-padding">
+        <form id="reservationForm">
+            <div class="w3-row-padding">
+                <div class="w3-col m6">
+                    <label>Laboratory</label>
+                    <select id="laboratory" class="w3-input w3-border" required>
+                        <option value="">Select Laboratory</option>
+                        <option value="530">Lab 530</option>
+                        <option value="540">Lab 540</option>
+                        <option value="544">Lab 544</option>
+                        <option value="542">Lab 542</option>
+                        <option value="526">Lab 526</option>
+                    </select>
+                </div>
+                <div class="w3-col m6">
+                    <label>Purpose</label>
+                    <select id="purpose" class="w3-input w3-border" required>
+                        <option value="">Select Purpose</option>
+                        <option value="Python">Python</option>
+                        <option value="C#">C#</option>
+                        <option value="Web Development">Web Development</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="w3-row-padding" style="margin-top: 15px;">
+                <div class="w3-col m4">
+                    <label>Date</label>
+                    <input type="date" id="reservationDate" class="w3-input w3-border" required>
+                </div>
+                <div class="w3-col m4">
+                    <label>Start Time</label>
+                    <input type="time" id="startTime" class="w3-input w3-border" required>
+                </div>
+                <div class="w3-col m4">
+                    <label>End Time</label>
+                    <input type="time" id="endTime" class="w3-input w3-border" required>
+                </div>
+            </div>
+            
+            <div class="w3-row-padding" style="margin-top: 15px;">
+                <div class="w3-col m12">
+                    <label>Available Computers</label>
+                    <div id="computerGrid" class="computer-grid">
+                        <!-- Computers will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="w3-row-padding" style="margin-top: 20px;">
+                <div class="w3-col m12">
+                    <button type="submit" class="w3-button w3-blue" style="width: 200px;">Submit Reservation</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reservation History Section -->
+<div class="w3-container" style="padding: 20px;">
+    <h2>My Reservation History</h2>
+    
+    <div class="w3-card w3-padding">
+        <div class="w3-bar w3-margin-bottom">
+            <select class="w3-select w3-border" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        
+        <div id="reservationsList">
+            <table class="w3-table w3-striped w3-bordered">
+                <thead>
+                    <tr>
+                        <th>Laboratory</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Purpose</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in reservations %}
+                        <tr>
+                            <td>Lab {{ reservation.laboratory }}</td>
+                            <td>{{ reservation.reservation_date }}</td>
+                            <td>{{ reservation.start_time }} - {{ reservation.end_time }}</td>
+                            <td>{{ reservation.purpose }}</td>
+                            <td>
+                                {% if reservation.status == 'pending' %}
+                                    <span class="w3-tag w3-yellow">Pending</span>
+                                {% elif reservation.status == 'approved' %}
+                                    <span class="w3-tag w3-green">Approved</span>
+                                {% else %}
+                                    <span class="w3-tag w3-red">Rejected</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to show error message
+function showError(message, isError = true) {
+    const errorDiv = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    errorText.textContent = message;
+    errorDiv.style.display = 'block';
+    errorDiv.className = isError ? 'w3-panel w3-red w3-display-container' : 'w3-panel w3-yellow w3-display-container';
+}
+
+document.getElementById('reservationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const laboratory = document.getElementById('laboratory').value;
+    const purpose = document.getElementById('purpose').value;
+    const date = document.getElementById('reservationDate').value;
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    const computerId = document.querySelector('input[name="computer"]:checked')?.value;
+    
+    if (!computerId) {
+        showError('Please select a computer');
+        return;
+    }
+    
+    fetch('/create_reservation', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            laboratory: laboratory,
+            purpose: purpose,
+            date: date,
+            start_time: startTime,
+            end_time: endTime,
+            computer_id: computerId
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Error creating reservation');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.message) {
+            showError(data.message, false);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showError('Reservation created successfully!', false);
+            setTimeout(() => location.reload(), 2000);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError(error.message || 'Error creating reservation');
+    });
+});
+
+function loadAvailableComputers() {
+    const laboratory = document.getElementById('laboratory').value;
+    const date = document.getElementById('reservationDate').value;
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    
+    console.log('Debug - Form values:', { laboratory, date, startTime, endTime });
+    
+    if (!laboratory || !date || !startTime || !endTime) {
+        console.log('Debug - Missing required fields');
+        return;
+    }
+    
+    console.log('Debug - Fetching available computers...');
+    fetch(`/get_available_computers?laboratory=${laboratory}&date=${date}&start_time=${startTime}&end_time=${endTime}`)
+    .then(response => {
+        console.log('Debug - Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Debug - Received data:', data);
+        const grid = document.getElementById('computerGrid');
+        grid.innerHTML = '';
+        
+        if (!data.available) {
+            showError(data.message);
+            return;
+        }
+        
+        if (!data.computers || data.computers.length === 0) {
+            console.log('Debug - No computers found');
+            showError('No computers available for the selected time slot.', false);
+            return;
+        }
+        
+        data.computers.forEach(computer => {
+            const div = document.createElement('div');
+            div.className = `computer-item ${computer.available ? 'available' : 'unavailable'}`;
+            
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'computer';
+            input.value = computer.id;
+            input.id = `computer-${computer.id}`;
+            input.disabled = !computer.available;
+            
+            const label = document.createElement('label');
+            label.htmlFor = `computer-${computer.id}`;
+            label.textContent = computer.computer_number;
+            
+            div.appendChild(input);
+            div.appendChild(label);
+            grid.appendChild(div);
+            
+            if (computer.available) {
+                div.addEventListener('click', () => {
+                    input.checked = true;
+                    document.querySelectorAll('.computer-item.selected').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    div.classList.add('selected');
+                });
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Error loading available computers. Please try again.');
+    });
+}
+
+document.getElementById('laboratory').addEventListener('change', loadAvailableComputers);
+document.getElementById('reservationDate').addEventListener('change', loadAvailableComputers);
+document.getElementById('startTime').addEventListener('change', loadAvailableComputers);
+document.getElementById('endTime').addEventListener('change', loadAvailableComputers);
+
+// Add this new function for handling reservation history
+function loadReservations() {
+    fetch('/get_my_reservations')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            const container = document.getElementById('reservationsList');
+            const reservations = data.reservations;
+            const status = document.getElementById('statusFilter').value;
+            
+            // Filter reservations by status if a status is selected
+            const filteredReservations = status 
+                ? reservations.filter(r => r.status === status)
+                : reservations;
+            
+            if (filteredReservations.length === 0) {
+                container.innerHTML = '<p>No reservations found.</p>';
+                return;
+            }
+            
+            const table = document.createElement('table');
+            table.className = 'w3-table w3-striped w3-bordered';
+            
+            // Create table header
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Laboratory</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+            
+            // Create table body
+            const tbody = document.createElement('tbody');
+            filteredReservations.forEach(reservation => {
+                const statusClass = reservation.status === 'pending' ? 'w3-yellow' : 
+                                 reservation.status === 'approved' ? 'w3-green' : 'w3-red';
+                const statusText = String(reservation.status).charAt(0).toUpperCase() + String(reservation.status).slice(1);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>Lab ${reservation.laboratory}</td>
+                    <td>${reservation.reservation_date}</td>
+                    <td>${reservation.start_time} - ${reservation.end_time}</td>
+                    <td>${reservation.purpose}</td>
+                    <td>${reservation.created_at}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            
+            container.innerHTML = '';
+            container.appendChild(table);
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// Load initial reservations
+document.addEventListener('DOMContentLoaded', function() {
+    loadReservations();
+    
+    // Reload when status filter changes
+    document.getElementById('statusFilter').addEventListener('change', loadReservations);
+});
+</script>
+{% endblock %}
