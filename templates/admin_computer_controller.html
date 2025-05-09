@@ -1,0 +1,302 @@
+{% extends "admin_dashboard.html" %}
+{% block content %}
+
+<div class="w3-container" style="padding: 20px;">
+    <h2>Computer Controller</h2>
+    
+    <!-- Filters -->
+    <div class="w3-row-padding" style="margin-bottom: 20px;">
+        <div class="w3-col m3">
+            <label>Laboratory</label>
+            <select id="labFilter" class="w3-select w3-border">
+                <option value="">All Laboratories</option>
+                <option value="530">530</option>
+                <option value="540">540</option>
+                <option value="544">544</option>
+                <option value="542">542</option>
+                <option value="526">526</option>
+            </select>
+        </div>
+        <div class="w3-col m3">
+            <label>Status</label>
+            <select id="statusFilter" class="w3-select w3-border">
+                <option value="">All Status</option>
+                <option value="available">Available</option>
+                <option value="in_use">In Use</option>
+                <option value="reserved">Reserved</option>
+                <option value="maintenance">Maintenance</option>
+            </select>
+        </div>
+        <div class="w3-col m3">
+            <label>Search</label>
+            <input type="text" id="searchInput" class="w3-input w3-border" placeholder="Search by PC number...">
+        </div>
+        <div class="w3-col m3">
+            <label>&nbsp;</label>
+            <button onclick="refreshComputers()" class="w3-button w3-blue w3-block">
+                <i class="fa fa-refresh"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Computers Grid -->
+    <div class="w3-row-padding" id="computersGrid">
+        <!-- Computers will be loaded here -->
+    </div>
+</div>
+
+<!-- Computer Status Modal -->
+<div id="computerStatusModal" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width: 500px;">
+        <header class="w3-container w3-blue">
+            <h3>Update Computer Status</h3>
+            <span onclick="closeComputerStatusModal()" class="w3-button w3-display-topright">&times;</span>
+        </header>
+        <div class="w3-container" style="padding: 20px;">
+            <p>Computer: <span id="modalComputerNumber"></span></p>
+            <p>Laboratory: <span id="modalLaboratory"></span></p>
+            <p>Current Status: <span id="modalCurrentStatus"></span></p>
+            
+            <div class="w3-row-padding" style="margin-top: 20px;">
+                <div class="w3-col m12">
+                    <label>New Status</label>
+                    <select id="newStatus" class="w3-select w3-border">
+                        <option value="available">Available</option>
+                        <option value="in_use">In Use</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="w3-row-padding" style="margin-top: 20px;">
+                <div class="w3-col m12">
+                    <button onclick="updateComputerStatus()" class="w3-button w3-blue w3-block">Update Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.computer-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 15px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.computer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.computer-card.available {
+    border-left: 4px solid #2C3E50;
+}
+
+.computer-card.in_use {
+    border-left: 4px solid #e74c3c;
+}
+
+.computer-card.reserved {
+    border-left: 4px solid #f1c40f;
+}
+
+.computer-card.maintenance {
+    border-left: 4px solid #95a5a6;
+}
+
+.computer-number {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.computer-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.status-available {
+    background: #014169;
+    color: white;
+}
+
+.status-in_use {
+    background: #e74c3c;
+    color: white;
+}
+
+.status-reserved {
+    background: #f1c40f;
+    color: #2c3e50;
+}
+
+.status-maintenance {
+    background: #95a5a6;
+    color: white;
+}
+
+.computer-info {
+    margin-bottom: 10px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.computer-actions {
+    margin-top: 10px;
+}
+
+.computer-actions button {
+    margin-right: 5px;
+}
+
+.w3-modal-content {
+    border-radius: 8px;
+}
+
+.w3-modal-content header {
+    border-radius: 8px 8px 0 0;
+}
+</style>
+
+<script>
+let currentComputerId = null;
+
+function refreshComputers() {
+    const laboratory = document.getElementById('labFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const search = document.getElementById('searchInput').value;
+    
+    fetch(`/admin/get_computers?laboratory=${laboratory}&status=${status}&search=${search}`)
+        .then(response => response.json())
+        .then(data => {
+            const grid = document.getElementById('computersGrid');
+            grid.innerHTML = '';
+            
+            data.computers.forEach(computer => {
+                const card = document.createElement('div');
+                card.className = `w3-col m3 computer-card ${computer.status}`;
+                
+                const statusClass = `status-${computer.status}`;
+                const statusText = computer.status.charAt(0).toUpperCase() + computer.status.slice(1).replace('_', ' ');
+                
+                card.innerHTML = `
+                    <div class="computer-number">${computer.computer_number}</div>
+                    <div class="computer-status ${statusClass}">${statusText}</div>
+                    <div class="computer-info">
+                        <div>Laboratory: ${computer.laboratory}</div>
+                        ${computer.current_user ? `<div>User: ${computer.current_user}</div>` : ''}
+                        ${computer.reservation_time ? `<div>Reserved: ${computer.reservation_time}</div>` : ''}
+                    </div>
+                    <div class="computer-actions">
+                        <button onclick="openComputerStatusModal('${computer.id}', '${computer.computer_number}', '${computer.laboratory}', '${computer.status}')" 
+                                class="w3-button w3-blue w3-small">
+                            <i class="fa fa-edit"></i> Update Status
+                        </button>
+                        ${computer.status === 'in_use' ? `
+                            <button onclick="makeAvailable('${computer.id}')" 
+                                    class="w3-button w3-green w3-small">
+                                <i class="fa fa-check"></i> Make Available
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading computers');
+        });
+}
+
+function openComputerStatusModal(computerId, computerNumber, laboratory, currentStatus) {
+    currentComputerId = computerId;
+    document.getElementById('modalComputerNumber').textContent = computerNumber;
+    document.getElementById('modalLaboratory').textContent = laboratory;
+    document.getElementById('modalCurrentStatus').textContent = currentStatus;
+    document.getElementById('newStatus').value = currentStatus;
+    document.getElementById('computerStatusModal').style.display = 'block';
+}
+
+function closeComputerStatusModal() {
+    document.getElementById('computerStatusModal').style.display = 'none';
+    currentComputerId = null;
+}
+
+function updateComputerStatus() {
+    if (!currentComputerId) return;
+    
+    const newStatus = document.getElementById('newStatus').value;
+    
+    fetch('/admin/update_computer_status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            computer_id: currentComputerId,
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeComputerStatusModal();
+            refreshComputers();
+        } else {
+            alert(data.message || 'Error updating computer status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating computer status');
+    });
+}
+
+function makeAvailable(computerId) {
+    if (!confirm('Are you sure you want to make this computer available?')) return;
+    
+    fetch('/admin/make_computer_available', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            computer_id: computerId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            refreshComputers();
+        } else {
+            alert(data.message || 'Error making computer available');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error making computer available');
+    });
+}
+
+// Event listeners
+document.getElementById('labFilter').addEventListener('change', refreshComputers);
+document.getElementById('statusFilter').addEventListener('change', refreshComputers);
+document.getElementById('searchInput').addEventListener('input', refreshComputers);
+
+// Initial load
+refreshComputers();
+
+// Refresh every 30 seconds
+setInterval(refreshComputers, 30000);
+</script>
+
+{% endblock %} 

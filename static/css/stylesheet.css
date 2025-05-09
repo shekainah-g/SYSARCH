@@ -179,30 +179,35 @@ textarea {
 
 .flash-messages {
     position: fixed;
-    top: 20px;
+    top: 30px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
-    width: 50%;
-    color: white;
-    padding: 20px;
+    min-width: 300px;
+    max-width: 90vw;
 }
 
 .flash {
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 15px 30px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    color: #fff;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    animation: fadeIn 0.5s;
 }
 
 .flash.success {
-    background-color: rgba(40, 167, 69, 0.8);
+    background: #4CAF50;
 }
 
 .flash.error {
-    background-color: rgba(220, 53, 69, 0.8);
+    background: #f44336;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px);}
+    to { opacity: 1; transform: translateY(0);}
 }
 
 .footer {

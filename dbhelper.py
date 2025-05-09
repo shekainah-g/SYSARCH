@@ -372,7 +372,8 @@ def get_current_sitins():
                 u.firstname || ' ' || u.lastname as name,
                 cs.purpose,
                 cs.laboratory,
-                strftime('%Y-%m-%d %H:%M:%S', cs.time_in) as time_in
+                strftime('%Y-%m-%d %H:%M:%S', cs.time_in) as time_in,
+                u.points
             FROM current_sitins cs
             JOIN users u ON cs.user_id = u.id
             ORDER BY cs.time_in DESC
@@ -386,7 +387,8 @@ def get_current_sitins():
             "name": sitin[1],
             "purpose": sitin[2],
             "laboratory": sitin[3],
-            "time_in": sitin[4]
+            "time_in": sitin[4],
+            "points": sitin[5] if sitin[5] is not None else 0
         } for sitin in sitins]
     except Exception as e:
         print(f"Error in get_current_sitins: {e}")
@@ -433,7 +435,7 @@ def get_today_sit_in_history():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Get today's sit-in history with student names and points
+        # Get today's sit-in history with student names and points from users table
         cursor.execute("""
             SELECT 
                 h.id,
@@ -443,7 +445,7 @@ def get_today_sit_in_history():
                 h.laboratory,
                 h.time_in,
                 h.time_out,
-                h.points
+                u.points
             FROM sit_in_history h
             JOIN users u ON h.user_id = u.id
             WHERE DATE(h.time_out) = DATE('now', 'localtime')
@@ -463,7 +465,7 @@ def get_today_sit_in_history():
                 'laboratory': record[4],
                 'time_in': record[5],
                 'time_out': record[6],
-                'points': record[7]
+                'points': record[7] if record[7] is not None else 0
             })
         
         conn.close()
@@ -680,6 +682,19 @@ def create_tables():
             )
         ''')
         
+        # Create notifications table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                type TEXT NOT NULL DEFAULT 'reservation',
+                is_read INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        
         # Initialize computers if table is empty
         cursor.execute("SELECT COUNT(*) FROM computers")
         if cursor.fetchone()[0] == 0:
@@ -850,9 +865,10 @@ def get_student_reservations(user_id):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT r.*, u.firstname, u.lastname
+            SELECT r.*, u.firstname, u.lastname, c.computer_number
             FROM reservations r
             JOIN users u ON r.user_id = u.id
+            LEFT JOIN computers c ON r.computer_id = c.id
             WHERE r.user_id = ?
             ORDER BY r.reservation_date DESC, r.start_time DESC
         """, (user_id,))
@@ -867,9 +883,11 @@ def get_student_reservations(user_id):
             "reservation_date": r[4],
             "start_time": r[5],
             "end_time": r[6],
-            "status": r[7],
-            "created_at": r[8],
-            "student_name": f"{r[9]} {r[10]}"
+            "computer_id": r[7],
+            "status": r[8],
+            "created_at": r[9],
+            "student_name": f"{r[10]} {r[11]}",
+            "computer_number": r[12] if r[12] else 'Not assigned'
         } for r in reservations]
     except Exception as e:
         print(f"Error getting student reservations: {e}")
@@ -909,63 +927,91 @@ def get_pending_reservations():
         print(f"Error getting pending reservations: {e}")
         return []
 
+def create_notification(user_id, message, notification_type='reservation'):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO notifications (user_id, message, type, is_read, created_at)
+            VALUES (?, ?, ?, 0, datetime('now'))
+        """, (user_id, message, notification_type))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error creating notification: {e}")
+        return False
+
 def update_reservation_status(reservation_id, status):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Get the reservation details
+        # Get reservation details
         cursor.execute("""
-            SELECT user_id, laboratory, purpose, reservation_date, start_time, end_time
-            FROM reservations 
+            SELECT user_id, laboratory, computer_id, reservation_date, start_time, end_time, purpose
+            FROM reservations
             WHERE id = ?
         """, (reservation_id,))
-        
         reservation = cursor.fetchone()
-        if not reservation:
-            return False
-            
-        user_id, laboratory, purpose, date, start_time, end_time = reservation
         
+        if not reservation:
+            return False, "Reservation not found"
+        
+        # Update reservation status
+        cursor.execute("""
+            UPDATE reservations
+            SET status = ?
+            WHERE id = ?
+        """, (status, reservation_id))
+        
+        # If approved, add to current_sitins
         if status == 'approved':
-            # Check if student has remaining sessions
-            cursor.execute("SELECT remaining_sessions FROM users WHERE id = ?", (user_id,))
-            result = cursor.fetchone()
-            
-            if not result or result[0] <= 0:
-                return False, "Student has no remaining sessions"
-            
-            # Create a sit-in session
+            # Check if student is already logged in
             cursor.execute("""
-                INSERT INTO current_sitins (user_id, time_in, purpose, laboratory)
-                VALUES (?, datetime('now', 'localtime'), ?, ?)
-            """, (user_id, purpose, laboratory))
+                SELECT id FROM current_sitins 
+                WHERE user_id = ?
+            """, (reservation[0],))
             
-            # Update reservation status
+            if cursor.fetchone():
+                conn.close()
+                return False, "Student is already logged in"
+            
+            # Add to current_sitins
             cursor.execute("""
-                UPDATE reservations 
-                SET status = ? 
+                INSERT INTO current_sitins (user_id, time_in, purpose, laboratory, computer_id)
+                VALUES (?, datetime('now', 'localtime'), ?, ?, ?)
+            """, (reservation[0], reservation[6], reservation[1], reservation[2]))
+            
+            # Update computer status to in_use
+            cursor.execute("""
+                UPDATE computers
+                SET status = 'in_use'
                 WHERE id = ?
-            """, (status, reservation_id))
-            
-            conn.commit()
-            conn.close()
-            return True
-        else:
-            # Just update the status for rejected reservations
-            cursor.execute("""
-                UPDATE reservations 
-                SET status = ? 
-                WHERE id = ?
-            """, (status, reservation_id))
-            
-            conn.commit()
-            conn.close()
-            return True
-            
+            """, (reservation[2],))
+        
+        # Create notification
+        user_id = reservation[0]
+        lab = reservation[1]
+        computer_id = reservation[2]
+        date = reservation[3]
+        start_time = reservation[4]
+        end_time = reservation[5]
+        
+        message = f"Your reservation for Lab {lab} (PC{computer_id}) on {date} from {start_time} to {end_time} has been {status}"
+        notification_type = 'reservation'
+        
+        cursor.execute("""
+            INSERT INTO notifications (user_id, message, type, is_read, created_at)
+            VALUES (?, ?, ?, 0, datetime('now'))
+        """, (user_id, message, notification_type))
+        
+        conn.commit()
+        conn.close()
+        return True, f"Reservation {status} successfully"
     except Exception as e:
         print(f"Error updating reservation status: {e}")
-        return False
+        return False, str(e)
 
 def get_available_time_slots(laboratory, date):
     try:
@@ -1117,8 +1163,8 @@ def add_points(student_id, points_to_add):
         total_points = current_points + points_to_add
         
         # Calculate how many new sessions to add (1 session per 3 points)
-        new_sessions = total_points // 3
-        remaining_points = total_points % 3
+        new_sessions = points_to_add // 3
+        remaining_points = points_to_add % 3
         
         # Check if adding new sessions would exceed the limit
         if remaining_sessions + new_sessions > session_limit:
@@ -1129,9 +1175,9 @@ def add_points(student_id, points_to_add):
         cursor.execute("""
             UPDATE users 
             SET remaining_sessions = remaining_sessions + ?,
-                points = ?
+                points = points + ?
             WHERE id = ?
-        """, (new_sessions, remaining_points, student_id))
+        """, (new_sessions, points_to_add, student_id))
         
         # Update points in the most recent sit-in history record
         cursor.execute("""
@@ -1155,7 +1201,7 @@ def add_points(student_id, points_to_add):
         
         return {
             "success": True, 
-            "message": f"Added {points_to_add} points. Converted {new_sessions} points to sessions. Remaining points: {remaining_points}"
+            "message": f"Added {points_to_add} points. Converted {new_sessions} points to sessions. Total points: {total_points}"
         }
         
     except Exception as e:
@@ -1217,13 +1263,11 @@ def get_top_students(limit=10):
                 u.firstname || ' ' || u.lastname as name,
                 u.course,
                 u.yearlvl,
-                COALESCE(SUM(sh.points), 0) as total_points,
+                u.points,
                 u.remaining_sessions
             FROM users u
-            LEFT JOIN sit_in_history sh ON u.id = sh.user_id
             WHERE u.role = 'student'
-            GROUP BY u.id, u.firstname, u.lastname, u.course, u.yearlvl, u.remaining_sessions
-            ORDER BY total_points DESC, u.remaining_sessions DESC
+            ORDER BY u.points DESC, u.remaining_sessions DESC
             LIMIT ?
         """, (limit,))
         
@@ -1235,7 +1279,7 @@ def get_top_students(limit=10):
             "name": student[1],
             "course": student[2],
             "yearlvl": student[3],
-            "points": student[4],
+            "points": student[4] if student[4] is not None else 0,
             "remaining_sessions": student[5]
         } for student in students]
     except Exception as e:
@@ -1560,6 +1604,18 @@ def get_resources():
     except Exception as e:
         print(f"Error getting resources: {e}")
         return []
+    
+def get_resource_by_id(resource_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM resources WHERE id = ?', (resource_id,))
+        resource = cursor.fetchone()
+        conn.close()
+        return resource
+    except Exception as e:
+        print(f"Error fetching resource: {e}")
+        return None
 
 def delete_resource(resource_id):
     try:
@@ -1572,6 +1628,228 @@ def delete_resource(resource_id):
     except Exception as e:
         print(f"Error deleting resource: {e}")
         return False
+
+def add_notification(user_id, message, type):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO notifications (user_id, message, type)
+            VALUES (?, ?, ?)
+        """, (user_id, message, type))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error adding notification: {e}")
+        return False
+
+def get_user_notifications(user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, message, is_read, created_at
+            FROM notifications
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        """, (user_id,))
+        
+        notifications = cursor.fetchall()
+        conn.close()
+        
+        return [{
+            'id': n[0],
+            'message': n[1],
+            'read': bool(n[2]),
+            'created_at': n[3]
+        } for n in notifications]
+    except Exception as e:
+        print(f"Error getting notifications: {e}")
+        return []
+
+def mark_notification_read(notification_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE notifications
+            SET is_read = 1
+            WHERE id = ?
+        """, (notification_id,))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error marking notification as read: {e}")
+        return False
+
+def init_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Create notifications table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                type TEXT NOT NULL DEFAULT 'reservation',
+                is_read INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+        raise e
+
+def get_reservation_logs(filter_type='all', filter_value=None):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Base query
+        query = """
+            SELECT 
+                r.id,
+                r.user_id,
+                u.firstname || ' ' || u.lastname as student_name,
+                u.course,
+                u.yearlvl,
+                r.laboratory,
+                r.purpose,
+                r.reservation_date,
+                r.start_time,
+                r.end_time,
+                r.status,
+                r.created_at,
+                c.computer_number
+            FROM reservations r
+            JOIN users u ON r.user_id = u.id
+            LEFT JOIN computers c ON r.computer_id = c.id
+            WHERE r.status = 'approved'
+        """
+        
+        params = []
+        
+        # Add filters based on filter_type
+        if filter_type == 'day' and filter_value:
+            query += " AND DATE(r.reservation_date) = DATE(?)"
+            params.append(filter_value)
+        elif filter_type == 'month' and filter_value:
+            query += " AND strftime('%Y-%m', r.reservation_date) = strftime('%Y-%m', ?)"
+            params.append(filter_value)
+        elif filter_type == 'year' and filter_value:
+            query += " AND strftime('%Y', r.reservation_date) = strftime('%Y', ?)"
+            params.append(filter_value)
+        
+        query += " ORDER BY r.reservation_date DESC, r.start_time DESC"
+        
+        cursor.execute(query, params)
+        logs = cursor.fetchall()
+        conn.close()
+        
+        # Convert the results to a list of dictionaries
+        formatted_logs = []
+        for log in logs:
+            formatted_logs.append({
+                'id': log[0],
+                'user_id': log[1],
+                'student_name': log[2],
+                'course': log[3],
+                'yearlvl': log[4],
+                'laboratory': log[5],
+                'purpose': log[6],
+                'reservation_date': log[7],
+                'start_time': log[8],
+                'end_time': log[9],
+                'status': log[10],
+                'created_at': log[11],
+                'computer_number': log[12] if log[12] else 'N/A'
+            })
+        
+        return formatted_logs
+    except Exception as e:
+        print(f"Error getting reservation logs: {e}")
+        return []
+
+def get_filtered_schedules(laboratory=None, day=None, time=None):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Base query
+        query = """
+            SELECT 
+                laboratory,
+                day_of_week,
+                start_time,
+                end_time,
+                subject,
+                instructor,
+                description
+            FROM lab_schedules
+            WHERE 1=1
+        """
+        params = []
+        
+        # Add filters
+        if laboratory:
+            query += " AND laboratory = ?"
+            params.append(laboratory)
+        
+        if day:
+            query += " AND day_of_week = ?"
+            params.append(day)
+        
+        if time:
+            if time == 'morning':
+                query += " AND start_time >= '08:00' AND start_time < '12:00'"
+            elif time == 'afternoon':
+                query += " AND start_time >= '13:00' AND start_time < '17:00'"
+        
+        # Order by day and time
+        query += """
+            ORDER BY 
+                CASE day_of_week
+                    WHEN 'Monday' THEN 1
+                    WHEN 'Tuesday' THEN 2
+                    WHEN 'Wednesday' THEN 3
+                    WHEN 'Thursday' THEN 4
+                    WHEN 'Friday' THEN 5
+                    WHEN 'Saturday' THEN 6
+                END,
+                start_time
+        """
+        
+        cursor.execute(query, params)
+        schedules = cursor.fetchall()
+        conn.close()
+        
+        return [{
+            'laboratory': schedule[0],
+            'day_of_week': schedule[1],
+            'start_time': schedule[2],
+            'end_time': schedule[3],
+            'subject': schedule[4],
+            'instructor': schedule[5],
+            'description': schedule[6]
+        } for schedule in schedules]
+        
+    except Exception as e:
+        print(f"Error getting filtered schedules: {e}")
+        return []
 
 # Call this function after creating tables
 create_tables()

@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         * {
             font-family: 'Poppins', sans-serif;
@@ -125,7 +127,112 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #6a2cce;
         }
+
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            width: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .notification-container.show {
+            display: block;
+        }
+
+        .notification-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .notification-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            padding: 5px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            display: none;
+        }
+
+        .notification-badge.show {
+            display: block;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .notification-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .notification-item.unread {
+            background-color: #e3f2fd;
+        }
+
+        .notification-item .message {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .notification-item .time {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @keyframes notification-popup {
+            0% { transform: translateY(-100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .notification-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: notification-popup 0.3s ease-out;
+            z-index: 1001;
+            display: none;
+        }
     </style>
+    {% block head %}{% endblock %}
 </head>
 <body>
     <div class="navbar">
@@ -160,6 +267,11 @@
         <a href="{{ url_for('admin_resources') }}" class="w3-bar-item w3-button">
             <i class="fa-solid fa-book"></i> Resources
         </a>
+        
+        <a href="{{ url_for('admin_computer_controller') }}" class="w3-bar-item w3-button">
+            <i class="fa-solid fa-desktop"></i> Computer Controller
+        </a>
+        
         
         <form action="{{ url_for('logout') }}" method="POST" style="position: absolute; bottom: 20px; width: 100%;">
             <button type="submit" class="w3-button w3-block" style="color: var(--accent-gold);">
@@ -233,7 +345,9 @@
         {% block content %}
         {% endblock %}
     </div>
-</body>
+</div>
+
+{% block scripts %}
 <script>
     setTimeout(() => {
         const flashMessages = document.querySelectorAll('.flash');
@@ -322,6 +436,169 @@
         });
     });
 
-</script>
+    let notificationCheckInterval;
 
+    function toggleNotifications() {
+        const container = document.getElementById('notificationContainer');
+        container.classList.toggle('show');
+        if (container.classList.contains('show')) {
+            loadNotifications();
+        }
+    }
+
+    function loadNotifications() {
+        fetch('/get_notifications')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const notificationList = document.getElementById('notificationList');
+                    notificationList.innerHTML = '';
+                    
+                    let unreadCount = 0;
+                    data.notifications.forEach(notification => {
+                        if (!notification.is_read) unreadCount++;
+                        
+                        const item = document.createElement('div');
+                        item.className = `notification-item ${notification.is_read ? '' : 'unread'}`;
+                        item.innerHTML = `
+                            <p class="message">${notification.message}</p>
+                            <p class="time">${new Date(notification.created_at).toLocaleString()}</p>
+                        `;
+                        
+                        item.onclick = () => markNotificationRead(notification.id);
+                        notificationList.appendChild(item);
+                    });
+                    
+                    updateNotificationBadge(unreadCount);
+                }
+            })
+            .catch(error => console.error('Error loading notifications:', error));
+    }
+
+    function markNotificationRead(notificationId) {
+        fetch('/mark_notification_read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notification_id: notificationId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadNotifications();
+            }
+        })
+        .catch(error => console.error('Error marking notification as read:', error));
+    }
+
+    function updateNotificationBadge(count) {
+        const badge = document.getElementById('notificationCount');
+        badge.textContent = count;
+        badge.classList.toggle('show', count > 0);
+    }
+
+    function showNotificationPopup(message) {
+        const popup = document.createElement('div');
+        popup.className = 'notification-popup';
+        popup.textContent = message;
+        document.body.appendChild(popup);
+        
+        setTimeout(() => {
+            popup.remove();
+        }, 5000);
+    }
+
+    // Start checking for new notifications
+    function startNotificationCheck() {
+        // Check immediately
+        loadNotifications();
+        
+        // Then check every 30 seconds
+        notificationCheckInterval = setInterval(loadNotifications, 30000);
+    }
+
+    // Stop checking for notifications
+    function stopNotificationCheck() {
+        if (notificationCheckInterval) {
+            clearInterval(notificationCheckInterval);
+        }
+    }
+
+    // Start checking for notifications when the page loads
+    document.addEventListener('DOMContentLoaded', startNotificationCheck);
+
+    // Stop checking when the page is unloaded
+    window.addEventListener('beforeunload', stopNotificationCheck);
+
+    function openLogsModal() {
+        $('#logsModal').modal('show');
+        loadLogs();
+    }
+
+    function updateFilterValue() {
+        const filterType = $('#filterType').val();
+        const filterValueContainer = $('#filterValueContainer');
+        const filterValue = $('#filterValue');
+        
+        filterValue.hide();
+        
+        if (filterType === 'day') {
+            filterValue.attr('type', 'date');
+            filterValue.show();
+        } else if (filterType === 'month') {
+            filterValue.attr('type', 'month');
+            filterValue.show();
+        } else if (filterType === 'year') {
+            filterValue.attr('type', 'number');
+            filterValue.attr('min', '2000');
+            filterValue.attr('max', '2100');
+            filterValue.show();
+        }
+    }
+
+    function loadLogs() {
+        const filterType = $('#filterType').val();
+        const filterValue = $('#filterValue').val();
+        
+        $.get('/get_reservation_logs', {
+            filter_type: filterType,
+            filter_value: filterValue
+        })
+        .done(function(response) {
+            if (response.success) {
+                const tbody = $('#logsTableBody');
+                tbody.empty();
+                
+                response.logs.forEach(log => {
+                    const row = `
+                        <tr>
+                            <td>${log.reservation_date}</td>
+                            <td>${log.student_name}</td>
+                            <td>${log.course}</td>
+                            <td>${log.yearlvl}</td>
+                            <td>Lab ${log.laboratory}</td>
+                            <td>${log.computer_number || 'N/A'}</td>
+                            <td>${log.start_time} - ${log.end_time}</td>
+                            <td>${log.purpose}</td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+            } else {
+                alert('Error loading logs: ' + response.error);
+            }
+        })
+        .fail(function() {
+            alert('Error loading logs. Please try again.');
+        });
+    }
+
+    // Initialize the filter value container
+    $(document).ready(function() {
+        updateFilterValue();
+    });
+</script>
+{% endblock %}
+</body>
 </html>

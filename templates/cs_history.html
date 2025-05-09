@@ -31,13 +31,13 @@
         <table class="w3-table w3-striped w3-bordered">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Purpose</th>
-                    <th>Laboratory</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
-                    <th>Points</th>
-                    <th>Actions</th>
+                    <th style="color: black;">Name</th>
+                    <th style="color: black;">Purpose</th>
+                    <th style="color: black;">Laboratory</th>
+                    <th style="color: black;">Time In</th>
+                    <th style="color: black;">Time Out</th>
+                    <th style="color: black;">Points</th>
+                    <th style="color: black;">Actions</th>
                 </tr>
             </thead>
             <tbody id="historyTable">
@@ -49,43 +49,11 @@
                     <td>{{ record.time_in }}</td>
                     <td>{{ record.time_out }}</td>
                     <td>{{ record.points or 0 }}</td>
-                    <td>
-                        <button onclick="openPointsModal('{{ record.student_id }}', '{{ record.student_name }}', {{ record.points or 0 }})" class="w3-button w3-green">
-                            <i class="fa fa-plus"></i> Add Points
-                        </button>
-                    </td>
+                    <!-- Remove the Add Points button and modal from here -->
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
-</div>
-
-<!-- Points Modal -->
-<div id="pointsModal" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width: 500px;">
-        <div class="w3-container">
-            <span onclick="closePointsModal()" class="w3-button w3-display-topright">&times;</span>
-            <h3>Add Points</h3>
-            <form id="pointsForm">
-                <input type="hidden" id="studentId">
-                <div class="w3-margin-bottom">
-                    <label>Student Name:</label>
-                    <input type="text" id="studentName" class="w3-input w3-border" readonly>
-                </div>
-                <div class="w3-margin-bottom">
-                    <label>Current Points:</label>
-                    <input type="text" id="currentPoints" class="w3-input w3-border" readonly>
-                </div>
-                <div class="w3-margin-bottom">
-                    <label>Points to Add:</label>
-                    <input type="number" id="pointsToAdd" class="w3-input w3-border" min="1" required>
-                </div>
-                <button type="submit" class="w3-button w3-green">
-                    <i class="fa fa-plus"></i> Add Points
-                </button>
-            </form>
-        </div>
     </div>
 </div>
 
@@ -145,55 +113,6 @@ function updateTable() {
 
 // Update table every 30 seconds
 setInterval(updateTable, 30000);
-
-function openPointsModal(studentId, studentName, currentPoints) {
-    document.getElementById('studentId').value = studentId;
-    document.getElementById('studentName').value = studentName;
-    document.getElementById('currentPoints').value = currentPoints;
-    document.getElementById('pointsModal').style.display = 'block';
-}
-
-function closePointsModal() {
-    document.getElementById('pointsModal').style.display = 'none';
-}
-
-document.getElementById('pointsForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const studentId = document.getElementById('studentId').value;
-    const pointsToAdd = parseInt(document.getElementById('pointsToAdd').value);
-    
-    fetch('/add_points', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            student_id: studentId,
-            points: pointsToAdd
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closePointsModal();
-            location.reload(); // Refresh the page to show updated points
-        } else {
-            alert(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error adding points');
-    });
-});
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    if (event.target == document.getElementById('pointsModal')) {
-        closePointsModal();
-    }
-}
 </script>
 
 <style>

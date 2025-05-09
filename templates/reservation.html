@@ -1,6 +1,16 @@
 {% extends "dashboard.html" %}
 
 {% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-messages">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
@@ -182,15 +192,125 @@
 .computer-grid::-webkit-scrollbar-thumb:hover {
     background: #2980b9;
 }
+
+/* Notification Styles */
+.notification-bell {
+    position: relative;
+    display: inline-block;
+    margin-left: 20px;
+    cursor: pointer;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 12px;
+    display: none;
+}
+
+.notification-panel {
+    display: none;
+    position: absolute;
+    right: 20px;
+    top: 60px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 300px;
+    z-index: 1000;
+}
+
+.notification-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-item.unread {
+    background-color: #f0f7ff;
+}
+
+.notification-item .time {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Add these styles for the reservation history section */
+.status-tag {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-pending {
+    background-color: #ffd700;
+    color: #000;
+}
+
+.status-approved {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-rejected {
+    background-color: #f44336;
+    color: white;
+}
+
+.w3-responsive {
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+.w3-table {
+    min-width: 600px;
+}
+
+.w3-table th {
+    background-color: #8a3cfe;
+    color: white;
+}
+
+.w3-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.w3-table tr:hover {
+    background-color: #f5f5f5;
+}
 </style>
 
 <div class="w3-container" style="padding: 20px;">
-    <h2>Make a Reservation</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Make a Reservation</h2>
+        <div class="notification-bell" onclick="toggleNotifications()">
+            <i class="fa-solid fa-bell" style="font-size: 1.2em;"></i>
+            <span class="notification-badge" id="notificationBadge">0</span>
+        </div>
+    </div>
+    
+    <div class="notification-panel" id="notificationPanel">
+        <div id="notificationList">
+            <!-- Notifications will be loaded here -->
+        </div>
+    </div>
     
     <!-- Add error message container -->
     <div id="errorMessage" class="w3-panel w3-red w3-display-container" style="display: none;">
         <span onclick="this.parentElement.style.display='none'" class="w3-button w3-red w3-large w3-display-topright">&times;</span>
-        <h3 style="color: white;">Error</h3>
+        <h3 style="color: white;">Message:</h3>
         <p style="color: white;" id="errorText"></p>
     </div>
     
@@ -259,7 +379,7 @@
     
     <div class="w3-card w3-padding">
         <div class="w3-bar w3-margin-bottom">
-            <select class="w3-select w3-border" id="statusFilter">
+            <select class="w3-select w3-border" id="statusFilter" onchange="filterReservations()">
                 <option value="">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
@@ -267,35 +387,20 @@
             </select>
         </div>
         
-        <div id="reservationsList">
+        <div class="w3-responsive">
             <table class="w3-table w3-striped w3-bordered">
                 <thead>
                     <tr>
                         <th>Laboratory</th>
+                        <th>PC Number</th>
                         <th>Date</th>
                         <th>Time</th>
                         <th>Purpose</th>
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for reservation in reservations %}
-                        <tr>
-                            <td>Lab {{ reservation.laboratory }}</td>
-                            <td>{{ reservation.reservation_date }}</td>
-                            <td>{{ reservation.start_time }} - {{ reservation.end_time }}</td>
-                            <td>{{ reservation.purpose }}</td>
-                            <td>
-                                {% if reservation.status == 'pending' %}
-                                    <span class="w3-tag w3-yellow">Pending</span>
-                                {% elif reservation.status == 'approved' %}
-                                    <span class="w3-tag w3-green">Approved</span>
-                                {% else %}
-                                    <span class="w3-tag w3-red">Rejected</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
+                <tbody id="reservationList">
+                    <!-- Reservations will be loaded here -->
                 </tbody>
             </table>
         </div>
@@ -440,77 +545,186 @@ document.getElementById('reservationDate').addEventListener('change', loadAvaila
 document.getElementById('startTime').addEventListener('change', loadAvailableComputers);
 document.getElementById('endTime').addEventListener('change', loadAvailableComputers);
 
-// Add this new function for handling reservation history
+// Add these functions for reservation history
 function loadReservations() {
     fetch('/get_my_reservations')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(data.error);
-                return;
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                throw new Error('Failed to load reservations');
             }
-            
-            const container = document.getElementById('reservationsList');
-            const reservations = data.reservations;
-            const status = document.getElementById('statusFilter').value;
-            
-            // Filter reservations by status if a status is selected
-            const filteredReservations = status 
-                ? reservations.filter(r => r.status === status)
-                : reservations;
-            
-            if (filteredReservations.length === 0) {
-                container.innerHTML = '<p>No reservations found.</p>';
-                return;
-            }
-            
-            const table = document.createElement('table');
-            table.className = 'w3-table w3-striped w3-bordered';
-            
-            // Create table header
-            const thead = document.createElement('thead');
-            thead.innerHTML = `
-                <tr>
-                    <th>Laboratory</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Purpose</th>
-                    <th>Status</th>
-                </tr>
-            `;
-            table.appendChild(thead);
-            
-            // Create table body
-            const tbody = document.createElement('tbody');
-            filteredReservations.forEach(reservation => {
-                const statusClass = reservation.status === 'pending' ? 'w3-yellow' : 
-                                 reservation.status === 'approved' ? 'w3-green' : 'w3-red';
-                const statusText = String(reservation.status).charAt(0).toUpperCase() + String(reservation.status).slice(1);
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>Lab ${reservation.laboratory}</td>
-                    <td>${reservation.reservation_date}</td>
-                    <td>${reservation.start_time} - ${reservation.end_time}</td>
-                    <td>${reservation.purpose}</td>
-                    <td>${reservation.created_at}</td>
-                `;
-                tbody.appendChild(row);
-            });
-            table.appendChild(tbody);
-            
-            container.innerHTML = '';
-            container.appendChild(table);
+            return response.json();
         })
-        .catch(error => console.error('Error:', error));
+        .then(data => {
+            const reservationList = document.getElementById('reservationList');
+            if (data.reservations && data.reservations.length > 0) {
+                reservationList.innerHTML = '';
+                data.reservations.forEach(reservation => {
+                    const status = (reservation.status || 'pending').toString().toLowerCase();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>Lab ${reservation.laboratory}</td>
+                        <td>${reservation.computer_number}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.start_time} - ${reservation.end_time}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>
+                            <span class="status-tag status-${status}">
+                                ${status.charAt(0).toUpperCase() + status.slice(1)}
+                            </span>
+                        </td>
+                    `;
+                    row.dataset.status = status;
+                    reservationList.appendChild(row);
+                });
+            } else {
+                reservationList.innerHTML = '<tr><td colspan="6" style="text-align: center;">No reservations found</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const reservationList = document.getElementById('reservationList');
+            reservationList.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Error loading reservations</td></tr>';
+        });
 }
 
-// Load initial reservations
-document.addEventListener('DOMContentLoaded', function() {
-    loadReservations();
+function filterReservations() {
+    const filter = document.getElementById('statusFilter').value.toLowerCase();
+    const rows = document.getElementById('reservationList').getElementsByTagName('tr');
     
-    // Reload when status filter changes
-    document.getElementById('statusFilter').addEventListener('change', loadReservations);
+    for (let row of rows) {
+        if (!row.dataset.status) continue; // Skip if no status (like header or message rows)
+        row.style.display = (!filter || row.dataset.status === filter) ? '' : 'none';
+    }
+}
+
+// Load reservations when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    loadReservations();
 });
+
+setTimeout(() => {
+    const flashMessages = document.querySelectorAll('.flash');
+    flashMessages.forEach(flash => {
+        flash.style.display = 'none';
+    });
+}, 4000); // 4 seconds
+
+// Notification functions
+function toggleNotifications() {
+    const panel = document.getElementById('notificationPanel');
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+    } else {
+        panel.style.display = 'block';
+        loadNotifications();
+    }
+}
+
+function loadNotifications() {
+    fetch('/get_notifications')
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // User is not authenticated, redirect to login
+                    window.location.href = '/login';
+                    return;
+                }
+                throw new Error('Failed to load notifications');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const notificationList = document.getElementById('notificationList');
+            const badge = document.getElementById('notificationBadge');
+            
+            if (!data.success) {
+                console.error('Error loading notifications:', data.error);
+                notificationList.innerHTML = '<div class="notification-item">Error loading notifications</div>';
+                return;
+            }
+            
+            if (data.notifications && data.notifications.length > 0) {
+                notificationList.innerHTML = '';
+                let unreadCount = 0;
+                
+                data.notifications.forEach(notification => {
+                    if (!notification.read) unreadCount++;
+                    
+                    const div = document.createElement('div');
+                    div.className = `notification-item ${notification.read ? '' : 'unread'}`;
+                    div.innerHTML = `
+                        <div>${notification.message}</div>
+                        <div class="time">${notification.created_at}</div>
+                    `;
+                    
+                    // Add click handler to mark as read
+                    div.addEventListener('click', () => {
+                        if (!notification.read) {
+                            fetch(`/mark_notification_read/${notification.id}`, {
+                                method: 'POST'
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    if (response.status === 401) {
+                                        window.location.href = '/login';
+                                        return;
+                                    }
+                                    throw new Error('Failed to mark notification as read');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.success) {
+                                    div.classList.remove('unread');
+                                    loadNotifications(); // Refresh notifications
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error marking notification as read:', error);
+                                showError('Failed to mark notification as read');
+                            });
+                        }
+                    });
+                    
+                    notificationList.appendChild(div);
+                });
+                
+                updateNotificationBadge(unreadCount);
+            } else {
+                notificationList.innerHTML = '<div class="notification-item">No notifications</div>';
+                updateNotificationBadge(0);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
+            const notificationList = document.getElementById('notificationList');
+            notificationList.innerHTML = '<div class="notification-item">Error loading notifications</div>';
+        });
+}
+
+// Check for new notifications every 30 seconds
+setInterval(loadNotifications, 30000);
+
+// Close notification panel when clicking outside
+document.addEventListener('click', function(event) {
+    const panel = document.getElementById('notificationPanel');
+    const bell = document.querySelector('.notification-bell');
+    
+    if (!panel.contains(event.target) && !bell.contains(event.target)) {
+        panel.style.display = 'none';
+    }
+});
+
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'block' : 'none';
+    }
+}
 </script>
 {% endblock %}

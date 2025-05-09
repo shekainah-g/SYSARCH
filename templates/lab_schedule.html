@@ -4,10 +4,17 @@
 <div class="w3-container" style="padding: 20px;">
     <h2>Lab Schedule Management</h2>
     
-    <!-- Add Schedule Form -->
-    <div class="w3-card w3-padding" style="max-width: 800px; margin: 20px auto;">
-        <h3>Add New Schedule</h3>
-        <form id="scheduleForm" action="{{ url_for('add_lab_schedule') }}" method="POST">
+    <!-- Add Schedule Button -->
+
+    <!-- Add Schedule Modal -->
+    <div id="scheduleModal" class="w3-modal">
+      <div class="w3-modal-content w3-animate-top" style="max-width: 800px;">
+        <header class="w3-container w3-blue">
+          <span onclick="closeScheduleModal()" class="w3-button w3-display-topright">&times;</span>
+          <h3>Add New Schedule</h3>
+        </header>
+        <div class="w3-container">
+          <form id="scheduleForm" action="{{ url_for('add_lab_schedule') }}" method="POST">
             <div class="w3-row-padding">
                 <div class="w3-half w3-margin-bottom">
                     <label for="laboratory">Laboratory:</label>
@@ -75,15 +82,19 @@
                           placeholder="e.g., Regular laboratory class for BSCS students"></textarea>
             </div>
 
-            <button type="submit" class="w3-button w3-blue w3-round">
-                <i class="fas fa-plus"></i> Add Schedule
-            </button>
-        </form>
+            <button type="submit" class="w3-button w3-blue">Submit</button>
+          </form>
+        </div>
+      </div>
     </div>
 
     <!-- Current Schedules Table -->
     <div class="w3-card w3-padding" style="margin-top: 20px;">
         <h3>Current Schedules</h3>
+        
+    <button class="w3-button w3-blue w3display-topright" onclick="openScheduleModal()" style="margin-bottom: 20px;">
+        <i class="fa fa-plus"></i> Add Schedule
+    </button>
         <div class="w3-responsive">
             <table class="w3-table w3-striped w3-bordered">
                 <thead>
@@ -164,6 +175,19 @@ document.getElementById('scheduleForm').addEventListener('submit', function(e) {
         return;
     }
 });
+
+function openScheduleModal() {
+    document.getElementById('scheduleModal').style.display = 'block';
+}
+function closeScheduleModal() {
+    document.getElementById('scheduleModal').style.display = 'none';
+}
+window.onclick = function(event) {
+    var modal = document.getElementById('scheduleModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
 </script>
 
 {% endblock %} 

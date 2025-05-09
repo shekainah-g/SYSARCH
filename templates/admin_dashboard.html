@@ -393,16 +393,18 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 // Daily Stats Chart
 const dailyStatsCtx = document.getElementById('dailyStatsChart').getContext('2d');
+
 const dailyStatsChart = new Chart(dailyStatsCtx, {
     type: 'line',
     data: {
-        labels: {{ daily_stats.dates | tojson }},
+        labels: {{ daily_stats.dates | tojson | safe }},
         datasets: [{
             label: 'Number of Sit-ins',
-            data: {{ daily_stats.counts | tojson }},
+            data: {{ daily_stats.counts | tojson | safe }},
             borderColor: '#8a3cfe',
             backgroundColor: 'rgba(138, 60, 254, 0.1)',
             borderWidth: 2,
@@ -428,6 +430,7 @@ const dailyStatsChart = new Chart(dailyStatsCtx, {
         }
     }
 });
+
 
 document.getElementById('announcementForm').addEventListener('submit', function(e) {
     e.preventDefault();

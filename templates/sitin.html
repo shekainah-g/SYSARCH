@@ -6,31 +6,60 @@
     
     <!-- Current Sit-ins Table -->
     <div class="w3-responsive">
-        <table class="w3-table w3-striped w3-bordered">
-            <thead>
-                <tr></tr>
-                    <th>Name</th>
-                    <th>Purpose</th>
-                    <th>Laboratory</th>
-                    <th>Time In</th>
-                    <th>Action</th>
+        <table class="w3-table w3-striped w3-bordered" >
+            <thead style="background-color: #2a3f54;">
+                <tr>
+                    <th style="color: black;">Name</th>
+                    <th style="color: black;">Purpose</th>
+                    <th style="color: black;">Laboratory</th>
+                    <th style="color: black;">Time In</th>
+                    <th style="color: black;">Points</th>
+                    <th style="color: black;">Action</th>
                 </tr>
             </thead>
             <tbody id="currentSitins">
                 {% for sitin in current_sitins %}
                 <tr data-student-id="{{ sitin.student_id }}">
-
                     <td>{{ sitin.name }}</td>
                     <td>{{ sitin.purpose }}</td>
                     <td>{{ sitin.laboratory }}</td>
                     <td>{{ sitin.time_in }}</td>
+                    <td>{{ sitin.points }}</td>
                     <td>
-                        <button onclick="logoutStudent('{{ sitin.student_id }}')" class="w3-button w3-red">Logout</button>
+                        <button onclick="openPointsLogoutModal('{{ sitin.student_id }}', '{{ sitin.name }}', {{ sitin.points }})" class="w3-button w3-green">Add Points & Logout</button>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Points & Logout Modal -->
+<div id="pointsLogoutModal" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width: 500px;">
+        <div class="w3-container">
+            <span onclick="closePointsLogoutModal()" class="w3-button w3-display-topright">&times;</span>
+            <h3>Add Points & Logout</h3>
+            <form id="pointsLogoutForm">
+                <input type="hidden" id="logoutStudentId">
+                <div class="w3-margin-bottom">
+                    <label>Student Name:</label>
+                    <input type="text" id="logoutStudentName" class="w3-input w3-border" readonly>
+                </div>
+                <div class="w3-margin-bottom">
+                    <label>Overall Points:</label>
+                    <input type="text" id="logoutCurrentPoints" class="w3-input w3-border" readonly>
+                </div>
+                <div class="w3-margin-bottom">
+                    <label>Points to Add:</label>
+                    <input type="number" id="logoutPointsToAdd" class="w3-input w3-border" min="1" required>
+                </div>
+                <button type="submit" class="w3-button w3-green">
+                    <i class="fa fa-plus"></i> Add Points & Logout
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -81,6 +110,7 @@ function updateCurrentSitins() {
                     <td>${sitin.purpose}</td>
                     <td>${sitin.laboratory}</td>
                     <td>${sitin.time_in}</td>
+                    <td>${sitin.points}</td>
                     <td>
                         <button onclick="logoutStudent('${sitin.student_id}')" class="w3-button w3-red">Logout</button>
                     </td>
@@ -96,6 +126,91 @@ function updateCurrentSitins() {
 
 // Update current sit-ins every 30 seconds
 setInterval(updateCurrentSitins, 30000);
+
+function openPointsLogoutModal(studentId, studentName, currentPoints) {
+    // Fetch the overall points from the server
+    fetch(`/get_student_points/${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('logoutStudentId').value = studentId;
+            document.getElementById('logoutStudentName').value = studentName;
+            document.getElementById('logoutCurrentPoints').value = data.points || 0;
+            document.getElementById('logoutPointsToAdd').value = '';
+            document.getElementById('pointsLogoutModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error fetching student points');
+        });
+}
+
+function closePointsLogoutModal() {
+    document.getElementById('pointsLogoutModal').style.display = 'none';
+}
+
+document.getElementById('pointsLogoutForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const studentId = document.getElementById('logoutStudentId').value;
+    const pointsToAdd = parseInt(document.getElementById('logoutPointsToAdd').value);
+    if (!pointsToAdd || pointsToAdd < 1) {
+        alert('Please enter a valid number of points.');
+        return;
+    }
+    // Add points first
+    fetch('/add_points', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            points: pointsToAdd
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Now log out the student
+            fetch('/log_out_student', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ student_id: studentId })
+            })
+            .then(response => response.json())
+            .then(data2 => {
+                if (data2.success) {
+                    closePointsLogoutModal();
+                    // Remove the row from the table
+                    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+                    if (row) {
+                        row.remove();
+                    }
+                } else {
+                    alert(data2.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error logging out student');
+            });
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding points');
+    });
+});
+
+// Optional: Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target == document.getElementById('pointsLogoutModal')) {
+        closePointsLogoutModal();
+    }
+}
 </script>
 
 <style>

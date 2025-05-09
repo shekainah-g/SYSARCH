@@ -1,0 +1,273 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+
+<div class="w3-container" style="padding: 20px;">
+    <div class="schedule-header">
+        <h2><i class="fas fa-calendar-alt"></i> Laboratory Schedules</h2>
+        <p class="schedule-subtitle">View and filter laboratory schedules for better planning</p>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="w3-card filter-card">
+        <div class="filter-container">
+            <div class="filter-group">
+                <label><i class="fas fa-building"></i> Laboratory</label>
+                <select id="labFilter" class="w3-select w3-border">
+                    <option value="">All Laboratories</option>
+                    <option value="530">Lab 530</option>
+                    <option value="540">Lab 540</option>
+                    <option value="544">Lab 544</option>
+                    <option value="542">Lab 542</option>
+                    <option value="526">Lab 526</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="fas fa-calendar-day"></i> Day</label>
+                <select id="dayFilter" class="w3-select w3-border">
+                    <option value="">All Days</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="fas fa-clock"></i> Time</label>
+                <select id="timeFilter" class="w3-select w3-border">
+                    <option value="">All Times</option>
+                    <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
+                    <option value="afternoon">Afternoon (1:00 PM - 5:00 PM)</option>
+                </select>
+            </div>
+
+            <button onclick="applyFilters()" class="filter-button">
+                <i class="fas fa-filter"></i> Apply Filters
+            </button>
+        </div>
+    </div>
+
+    <!-- Schedule Display -->
+    <div class="schedule-container">
+        <div class="schedule-grid" id="scheduleGrid">
+            <!-- Schedules will be populated here -->
+        </div>
+    </div>
+</div>
+
+<style>
+.schedule-header {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.schedule-header h2 {
+    color: #2C3E50;
+    margin-bottom: 10px;
+}
+
+.schedule-subtitle {
+    color: #7f8c8d;
+    font-size: 1.1em;
+}
+
+.filter-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    padding: 20px;
+}
+
+.filter-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label {
+    color: #2C3E50;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-button {
+    background: #2C3E50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    height: 42px;
+}
+
+.filter-button:hover {
+    background: #34495e;
+    transform: translateY(-2px);
+}
+
+.schedule-container {
+    margin-top: 30px;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.schedule-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.schedule-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.schedule-card h3 {
+    color: #2C3E50;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.schedule-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #34495e;
+}
+
+.info-item i {
+    color: #7f8c8d;
+    width: 20px;
+}
+
+.w3-select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.w3-select:focus {
+    border-color: #2C3E50;
+    box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.1);
+}
+
+@media (max-width: 768px) {
+    .filter-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+function applyFilters() {
+    const laboratory = document.getElementById('labFilter').value;
+    const day = document.getElementById('dayFilter').value;
+    const time = document.getElementById('timeFilter').value;
+    
+    fetch('/get_filtered_schedules', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            laboratory: laboratory,
+            day: day,
+            time: time
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const scheduleGrid = document.getElementById('scheduleGrid');
+        scheduleGrid.innerHTML = '';
+        
+        if (data.schedules.length === 0) {
+            scheduleGrid.innerHTML = `
+                <div class="w3-panel w3-pale-yellow w3-border" style="grid-column: 1/-1; text-align: center; padding: 20px;">
+                    <p><i class="fas fa-info-circle"></i> No schedules found for the selected filters.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        data.schedules.forEach(schedule => {
+            const card = document.createElement('div');
+            card.className = 'schedule-card';
+            card.innerHTML = `
+                <h3><i class="fas fa-chalkboard"></i> ${schedule.subject}</h3>
+                <div class="schedule-info">
+                    <div class="info-item">
+                        <i class="fas fa-building"></i>
+                        <span>Lab ${schedule.laboratory}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-calendar-day"></i>
+                        <span>${schedule.day_of_week}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-clock"></i>
+                        <span>${schedule.start_time} - ${schedule.end_time}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-user-tie"></i>
+                        <span>${schedule.instructor}</span>
+                    </div>
+                    ${schedule.description ? `
+                        <div class="info-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span>${schedule.description}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            scheduleGrid.appendChild(card);
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error loading schedules');
+    });
+}
+
+// Load all schedules when page loads
+document.addEventListener('DOMContentLoaded', applyFilters);
+</script>
+{% endblock %} 

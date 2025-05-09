@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, send_from_directory
 import dbhelper
+from dbhelper import get_db_connection
 import os
 from flask import jsonify
 import time
@@ -12,14 +13,55 @@ from docx import Document
 from openpyxl import Workbook
 import io
 from werkzeug.utils import secure_filename
-
+from flask_login import login_required, current_user, LoginManager, UserMixin
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.secret_key = 'g@ceta' 
 
+# SQLAlchemy configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Flask-Login configuration
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 UPLOAD_FOLDER = "static/uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+# Add this to your database models section
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    firstname = db.Column(db.String(80))
+    lastname = db.Column(db.String(80))
+    midname = db.Column(db.String(80))
+    email = db.Column(db.String(120))
+    role = db.Column(db.String(20))
+    course = db.Column(db.String(80))
+    yearlvl = db.Column(db.String(20))
+    profile_pic = db.Column(db.String(200))
+    remaining_sessions = db.Column(db.Integer, default=0)
+    notifications = db.relationship('Notification', backref='user', lazy=True)
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Create all database tables
+with app.app_context():
+    db.create_all()
 
 @app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
@@ -110,6 +152,10 @@ def information():
     if not user:
         flash("User not found!", "error")
         return redirect(url_for("login"))
+
+    # Get the student's points
+    points = dbhelper.get_student_points(user['id'])
+    user['points'] = points
 
     # Get announcements for display
     announcements = dbhelper.get_announcements()
@@ -503,27 +549,102 @@ def get_reservations():
         print(f"Error getting reservations: {e}")
         return jsonify({'error': 'Error getting reservations'}), 500
 
-@app.route('/admin/update_reservation', methods=['POST'])
-def update_reservation():
+@app.route('/admin/update_reservation_status', methods=['POST'])
+def update_reservation_status():
     if 'username' not in session or session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 401
     
-    data = request.get_json()
-    reservation_id = data.get('reservation_id')
-    status = data.get('status')
-    
-    if not reservation_id or status not in ['approved', 'rejected']:
-        return jsonify({'error': 'Invalid parameters'}), 400
-    
-    result = dbhelper.update_reservation_status(reservation_id, status)
-    if isinstance(result, tuple):
-        success, message = result
-        if not success:
-            return jsonify({'error': message}), 400
-    elif not result:
-        return jsonify({'error': 'Failed to update reservation'}), 500
-    
-    return jsonify({'message': 'Reservation updated successfully'})
+    try:
+        data = request.get_json()
+        reservation_id = data.get('reservation_id')
+        status = data.get('status')
+        
+        if not reservation_id or not status:
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        # Get reservation details
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT r.*, c.computer_number, c.status as computer_status
+            FROM reservations r
+            LEFT JOIN computers c ON r.computer_id = c.id
+            WHERE r.id = ?
+        """, (reservation_id,))
+        
+        reservation = cursor.fetchone()
+        if not reservation:
+            conn.close()
+            return jsonify({'error': 'Reservation not found'}), 404
+        
+        # If approving, check if computer is available
+        if status == 'approved':
+            if not reservation[7]:  # computer_id is None
+                conn.close()
+                return jsonify({'error': 'No computer selected for this reservation'}), 400
+            
+            # Check if computer is already in use or reserved
+            cursor.execute("""
+                SELECT COUNT(*) FROM current_sitins WHERE computer_id = ?
+            """, (reservation[7],))
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                return jsonify({'error': f'PC {reservation[8]} is currently in use'}), 400
+            
+            cursor.execute("""
+                SELECT COUNT(*) FROM reservations 
+                WHERE computer_id = ? 
+                AND status = 'approved'
+                AND reservation_date = ?
+                AND (
+                    (start_time <= ? AND end_time > ?) OR
+                    (start_time < ? AND end_time >= ?) OR
+                    (start_time >= ? AND end_time <= ?)
+                )
+            """, (reservation[7], reservation[4], reservation[5], reservation[5], 
+                  reservation[6], reservation[6], reservation[5], reservation[6]))
+            
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                return jsonify({'error': f'PC {reservation[8]} is already reserved for this time slot'}), 400
+            
+            # Update computer status to reserved
+            cursor.execute("""
+                UPDATE computers
+                SET status = 'reserved'
+                WHERE id = ?
+            """, (reservation[7],))
+        
+        # Update reservation status
+        cursor.execute("""
+            UPDATE reservations
+            SET status = ?
+            WHERE id = ?
+        """, (status, reservation_id))
+        
+        # Create notification
+        user_id = reservation[1]
+        lab = reservation[2]
+        computer_id = reservation[7]
+        date = reservation[4]
+        start_time = reservation[5]
+        end_time = reservation[6]
+        
+        message = f"Your reservation for Lab {lab} (PC{reservation[8]}) on {date} from {start_time} to {end_time} has been {status}"
+        notification_type = 'reservation'
+        
+        cursor.execute("""
+            INSERT INTO notifications (user_id, message, type, is_read, created_at)
+            VALUES (?, ?, ?, 0, datetime('now'))
+        """, (user_id, message, notification_type))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': f'Reservation {status} successfully'})
+    except Exception as e:
+        print(f"Error updating reservation status: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/download_student_list/<format>')
 def download_student_list(format):
@@ -798,21 +919,22 @@ def reservation_history():
 @app.route('/resources')
 def resources():
     if 'user_id' not in session:
-        flash('Please log in first', 'error')
+        flash('Please log in first.', 'error')
         return redirect(url_for('login'))
     
     try:
         resources = dbhelper.get_resources()
+        print("DEBUG: resources fetched for student:", resources)  # Debug print
         return render_template('resources.html', resources=resources)
     except Exception as e:
         print(f"Error: {e}")
         flash('Error loading resources', 'error')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('resources'))
 
 @app.route('/admin/resources')
 def admin_resources():
-    if 'user_id' not in session:
-        flash('Please log in first', 'error')
+    if 'username' not in session or session.get('role') != 'admin':
+        flash('Please log in as admin first.', 'error')
         return redirect(url_for('login'))
     
     try:
@@ -821,12 +943,13 @@ def admin_resources():
     except Exception as e:
         print(f"Error: {e}")
         flash('Error loading resources', 'error')
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('admin_resources'))
 
 @app.route('/upload_resource', methods=['POST'])
 def upload_resource():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Please log in first'})
+    if 'username' not in session or session.get('role') != 'admin':
+        flash('Please log in as admin first.', 'error')
+        return redirect(url_for('login'))
     
     try:
         if 'file' not in request.files:
@@ -856,9 +979,9 @@ def upload_resource():
 
 @app.route('/download_resource/<filename>')
 def download_resource(filename):
-    if 'user_id' not in session:
-        flash('Please log in first', 'error')
-        return redirect(url_for('login'))
+    if 'username' not in session or session.get('role') != 'admin':
+        flash('Please log in as admin first.', 'error')
+        return redirect(url_for('login'))   
     
     try:
         return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], 'resources'), filename, as_attachment=True)
@@ -882,6 +1005,353 @@ def get_file_type(filename):
     elif extension in ['mp4', 'mov', 'avi']:
         return 'video'
     return 'other'
+
+@app.route('/delete_resource/<int:resource_id>', methods=['DELETE'])
+def delete_resource(resource_id):
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized access'}), 403
+
+    try:
+        resource = dbhelper.get_resource_by_id(resource_id)
+        if not resource:
+            return jsonify({'error': 'Resource not found'}), 404
+
+        # Delete the file from the filesystem
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'resources', resource['filename'])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Delete from the database
+        dbhelper.delete_resource(resource_id)
+
+        return jsonify({'success': True, 'message': 'Resource deleted successfully'})
+    except Exception as e:
+        print(f"Error deleting resource: {e}")
+        return jsonify({'error': 'Failed to delete resource'}), 500
+
+@app.route('/admin/computer_controller')
+def admin_computer_controller():
+    if 'username' not in session or session.get('role') != 'admin':
+        flash('Please log in as admin first.', 'error')
+        return redirect(url_for('login'))
+    
+    return render_template('admin_computer_controller.html')
+
+@app.route('/admin/get_computers')
+def get_computers():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        laboratory = request.args.get('laboratory', '')
+        status = request.args.get('status', '')
+        search = request.args.get('search', '')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Base query
+        query = """
+            SELECT 
+                c.id,
+                c.computer_number,
+                c.laboratory,
+                c.status,
+                u.firstname || ' ' || u.lastname as current_user,
+                r.reservation_date || ' ' || r.start_time as reservation_time
+            FROM computers c
+            LEFT JOIN current_sitins cs ON c.id = cs.computer_id
+            LEFT JOIN users u ON cs.user_id = u.id
+            LEFT JOIN reservations r ON c.id = r.computer_id 
+                AND r.status = 'approved' 
+                AND r.reservation_date = date('now')
+                AND r.start_time <= time('now')
+                AND r.end_time > time('now')
+            WHERE 1=1
+        """
+        params = []
+        
+        # Add filters
+        if laboratory:
+            query += " AND c.laboratory = ?"
+            params.append(laboratory)
+        
+        if status:
+            query += " AND c.status = ?"
+            params.append(status)
+        
+        if search:
+            query += " AND c.computer_number LIKE ?"
+            params.append(f'%{search}%')
+        
+        query += " ORDER BY c.laboratory, c.computer_number"
+        
+        cursor.execute(query, params)
+        computers = cursor.fetchall()
+        
+        # Format the results
+        formatted_computers = []
+        for computer in computers:
+            formatted_computers.append({
+                'id': computer[0],
+                'computer_number': computer[1],
+                'laboratory': computer[2],
+                'status': computer[3],
+                'current_user': computer[4],
+                'reservation_time': computer[5]
+            })
+        
+        conn.close()
+        return jsonify({'computers': formatted_computers})
+    except Exception as e:
+        print(f"Error in get_computers: {e}")
+        return jsonify({'error': 'Error getting computers'}), 500
+
+@app.route('/admin/update_computer_status', methods=['POST'])
+def update_computer_status():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.get_json()
+        computer_id = data.get('computer_id')
+        status = data.get('status')
+        
+        if not computer_id or not status:
+            return jsonify({'success': False, 'message': 'Missing required parameters'})
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update computer status
+        cursor.execute("""
+            UPDATE computers
+            SET status = ?
+            WHERE id = ?
+        """, (status, computer_id))
+        
+        # If setting to in_use, create a current_sitin record with admin as the user
+        if status == 'in_use':
+            # Get admin user ID from admins table
+            cursor.execute("SELECT admin_id FROM admins WHERE username = ?", (session['username'],))
+            admin_result = cursor.fetchone()
+            
+            if not admin_result:
+                conn.close()
+                return jsonify({'success': False, 'message': 'No admin user found in database'})
+            
+            admin_id = admin_result[0]
+            
+            cursor.execute("""
+                INSERT INTO current_sitins (user_id, time_in, purpose, laboratory, computer_id)
+                VALUES (?, datetime('now'), 'Walk-in (Admin)', (SELECT laboratory FROM computers WHERE id = ?), ?)
+            """, (admin_id, computer_id, computer_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Computer status updated successfully'})
+    except Exception as e:
+        print(f"Error in update_computer_status: {e}")
+        return jsonify({'success': False, 'message': 'Error updating computer status'})
+
+@app.route('/admin/make_computer_available', methods=['POST'])
+def make_computer_available():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.get_json()
+        computer_id = data.get('computer_id')
+        
+        if not computer_id:
+            return jsonify({'success': False, 'message': 'Missing computer ID'})
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get the current sitin record
+        cursor.execute("""
+            SELECT id, user_id, time_in, laboratory
+            FROM current_sitins
+            WHERE computer_id = ?
+        """, (computer_id,))
+        
+        sitin = cursor.fetchone()
+        
+        if sitin:
+            # Add to sit_in_history
+            cursor.execute("""
+                INSERT INTO sit_in_history (user_id, time_in, time_out, purpose, laboratory, computer_id)
+                VALUES (?, ?, datetime('now'), 'Walk-in', ?, ?)
+            """, (sitin[1], sitin[2], sitin[3], computer_id))
+            
+            # Remove from current_sitins
+            cursor.execute("DELETE FROM current_sitins WHERE id = ?", (sitin[0],))
+        
+        # Update computer status
+        cursor.execute("""
+            UPDATE computers
+            SET status = 'available'
+            WHERE id = ?
+        """, (computer_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Computer made available successfully'})
+    except Exception as e:
+        print(f"Error in make_computer_available: {e}")
+        return jsonify({'success': False, 'message': 'Error making computer available'})
+
+@app.route('/get_notifications')
+def get_notifications():
+    if 'user_id' not in session:
+        return jsonify({
+            'success': False,
+            'error': 'Unauthorized',
+            'notifications': []
+        }), 401
+    
+    try:
+        notifications = dbhelper.get_user_notifications(session['user_id'])
+        return jsonify({
+            'success': True,
+            'notifications': notifications
+        })
+    except Exception as e:
+        print(f"Error getting notifications: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'notifications': []
+        }), 500
+
+@app.route('/mark_notification_read/<int:notification_id>', methods=['POST'])
+def mark_notification_read(notification_id):
+    if 'user_id' not in session:
+        return jsonify({
+            'success': False,
+            'error': 'Unauthorized'
+        }), 401
+    
+    try:
+        success = dbhelper.mark_notification_read(notification_id)
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Notification marked as read'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to mark notification as read'
+            }), 400
+    except Exception as e:
+        print(f"Error marking notification as read: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/approve_reservation/<int:reservation_id>', methods=['POST'])
+@login_required
+def approve_reservation(reservation_id):
+    try:
+        if not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Unauthorized'
+            }), 403
+        
+        print(f"Approving reservation {reservation_id}")  # Debug log
+        reservation = Reservation.query.get_or_404(reservation_id)
+        reservation.status = 'approved'
+        
+        # Create notification for the student
+        notification = Notification(
+            user_id=reservation.user_id,
+            message=f"Your reservation request for Lab {reservation.laboratory} on PC{reservation.computer_id} has been approved"
+        )
+        print(f"Creating notification: {notification.message}")  # Debug log
+        
+        db.session.add(notification)
+        db.session.commit()
+        print("Successfully approved reservation and created notification")  # Debug log
+        
+        return jsonify({
+            'success': True,
+            'message': 'Reservation approved and notification sent'
+        })
+    except Exception as e:
+        print(f"Error in approve_reservation: {str(e)}")  # Debug log
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/get_reservation_logs')
+def get_reservation_logs():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    try:
+        filter_type = request.args.get('filter_type', 'all')
+        filter_value = request.args.get('filter_value')
+        
+        logs = dbhelper.get_reservation_logs(filter_type, filter_value)
+        return jsonify({'success': True, 'logs': logs})
+    except Exception as e:
+        print(f"Error getting reservation logs: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/get_student_points/<int:student_id>')
+def get_student_points_route(student_id):
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT points 
+            FROM users 
+            WHERE id = ?
+        """, (student_id,))
+        
+        result = cursor.fetchone()
+        points = result[0] if result and result[0] is not None else 0
+        
+        conn.close()
+        return jsonify({'points': points})
+    except Exception as e:
+        print(f"Error getting student points: {e}")
+        return jsonify({'error': 'Error fetching points'}), 500
+
+@app.route('/view_schedule')
+def view_schedule():
+    if 'username' not in session:
+        flash('Please log in first.', 'error')
+        return redirect(url_for('login'))
+    return render_template('view_schedule.html')
+
+@app.route('/get_filtered_schedules', methods=['POST'])
+def get_filtered_schedules():
+    if 'username' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.get_json()
+        laboratory = data.get('laboratory')
+        day = data.get('day')
+        time = data.get('time')
+        
+        schedules = dbhelper.get_filtered_schedules(laboratory, day, time)
+        return jsonify({'schedules': schedules})
+    except Exception as e:
+        print(f"Error getting filtered schedules: {e}")
+        return jsonify({'error': 'Error fetching schedules'}), 500
 
 if __name__ == "__main__":
     # Initialize database tables
