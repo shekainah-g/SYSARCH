@@ -1,0 +1,107 @@
+// Function to show error message
+function showError(message, isError = true) {
+    const errorDiv = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    
+    if (errorDiv && errorText) {
+        errorText.textContent = message;
+        errorDiv.style.display = 'block';
+        errorDiv.className = isError ? 'w3-panel w3-red w3-display-container' : 'w3-panel w3-yellow w3-display-container';
+    } else {
+        console.error('Error elements not found:', message);
+        alert(message); // Fallback to alert
+    }
+}
+
+// Add these functions for reservation history
+function loadReservations() {
+    fetch('/get_my_reservations')
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                showError(data.error || 'Failed to load reservations');
+                return;
+            }
+            
+            const reservationList = document.getElementById('reservationList');
+            if (!reservationList) {
+                console.error('reservationList element not found');
+                return;
+            }
+            
+            if (data.reservations && data.reservations.length > 0) {
+                reservationList.innerHTML = '';
+                data.reservations.forEach(reservation => {
+                    const status = (reservation.status || 'pending').toString().toLowerCase();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>Lab ${reservation.laboratory}</td>
+                        <td>${reservation.computer_number}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.start_time} - ${reservation.end_time}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>
+                            <span class="status-tag status-${status}">
+                                ${status.charAt(0).toUpperCase() + status.slice(1)}
+                            </span>
+                        </td>
+                    `;
+                    row.dataset.status = status;
+                    reservationList.appendChild(row);
+                });
+            } else {
+                reservationList.innerHTML = '<tr><td colspan="6" style="text-align: center;">No reservations found</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading reservations:', error);
+            showError(`Error loading reservations: ${error.message}`);
+        });
+}
+
+function loadNotifications() {
+    fetch('/get_notifications')
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const notificationList = document.getElementById('notificationList');
+            const badge = document.getElementById('notificationBadge');
+            
+            if (!notificationList) {
+                console.error('notificationList element not found');
+                return;
+            }
+            
+            if (!data.success) {
+                console.error('Error loading notifications:', data.error);
+                notificationList.innerHTML = '<div class="notification-item">Error loading notifications</div>';
+                return;
+            }
+            
+            // ... rest of notification loading code ...
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
+            const notificationList = document.getElementById('notificationList');
+            if (notificationList) {
+                notificationList.innerHTML = '<div class="notification-item">Error loading notifications</div>';
+            }
+        });
+} 

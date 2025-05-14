@@ -421,16 +421,21 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                showError(data.error);
+                alert('Error: ' + data.error);
             } else {
-                const message = status === 'approved' ? 'Reservation approved successfully!' : 'Reservation rejected.';
+                let message = data.message;
+                if (status === 'approved') {
+                    message = 'Reservation approved successfully! Student has been automatically logged in.';
+                } else {
+                    message = 'Reservation rejected.';
+                }
                 alert(message);
                 loadReservations();
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showError('Error updating reservation status');
+            alert('Error updating reservation status');
         });
     };
     

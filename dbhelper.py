@@ -949,14 +949,21 @@ def update_reservation_status(reservation_id, status):
         
         # Get reservation details
         cursor.execute("""
-            SELECT user_id, laboratory, computer_id, reservation_date, start_time, end_time, purpose
-            FROM reservations
-            WHERE id = ?
+            SELECT r.*, c.computer_number
+            FROM reservations r
+            LEFT JOIN computers c ON r.computer_id = c.id
+            WHERE r.id = ?
         """, (reservation_id,))
         reservation = cursor.fetchone()
         
         if not reservation:
             return False, "Reservation not found"
+        
+        # Extract reservation data
+        user_id = reservation[1]
+        laboratory = reservation[2]
+        purpose = reservation[3]
+        computer_id = reservation[7]
         
         # Update reservation status
         cursor.execute("""
@@ -965,46 +972,45 @@ def update_reservation_status(reservation_id, status):
             WHERE id = ?
         """, (status, reservation_id))
         
-        # If approved, add to current_sitins
+        # If approved, add to current_sitins and update computer status
         if status == 'approved':
             # Check if student is already logged in
             cursor.execute("""
                 SELECT id FROM current_sitins 
                 WHERE user_id = ?
-            """, (reservation[0],))
+            """, (user_id,))
             
             if cursor.fetchone():
                 conn.close()
                 return False, "Student is already logged in"
             
-            # Add to current_sitins
+            # Insert into current_sitins
             cursor.execute("""
                 INSERT INTO current_sitins (user_id, time_in, purpose, laboratory, computer_id)
                 VALUES (?, datetime('now', 'localtime'), ?, ?, ?)
-            """, (reservation[0], reservation[6], reservation[1], reservation[2]))
+            """, (user_id, purpose, laboratory, computer_id))
             
-            # Update computer status to in_use
+            # Update computer status to 'in_use'
             cursor.execute("""
                 UPDATE computers
                 SET status = 'in_use'
                 WHERE id = ?
-            """, (reservation[2],))
+            """, (computer_id,))
         
         # Create notification
-        user_id = reservation[0]
-        lab = reservation[1]
-        computer_id = reservation[2]
-        date = reservation[3]
-        start_time = reservation[4]
-        end_time = reservation[5]
+        computer_number = reservation[12] if len(reservation) > 12 else 'N/A'
+        date = reservation[4]
+        start_time = reservation[5]
+        end_time = reservation[6]
         
-        message = f"Your reservation for Lab {lab} (PC{computer_id}) on {date} from {start_time} to {end_time} has been {status}"
-        notification_type = 'reservation'
+        message = f"Your reservation for Lab {laboratory} (PC {computer_number}) on {date} from {start_time} to {end_time} has been {status}"
+        if status == 'approved':
+            message += " and you have been automatically logged in"
         
         cursor.execute("""
             INSERT INTO notifications (user_id, message, type, is_read, created_at)
-            VALUES (?, ?, ?, 0, datetime('now'))
-        """, (user_id, message, notification_type))
+            VALUES (?, ?, 'reservation', 0, datetime('now'))
+        """, (user_id, message))
         
         conn.commit()
         conn.close()
@@ -1850,6 +1856,93 @@ def get_filtered_schedules(laboratory=None, day=None, time=None):
     except Exception as e:
         print(f"Error getting filtered schedules: {e}")
         return []
+
+def approve_reservation_and_sitin(reservation_id):
+    """
+    Approves a reservation and automatically creates a current sit-in record
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Get reservation details with user and computer info
+        cursor.execute("""
+            SELECT r.*, u.firstname, u.lastname, c.computer_number, c.laboratory
+            FROM reservations r 
+            JOIN user u ON r.user_id = u.id 
+            LEFT JOIN computers c ON r.computer_id = c.id 
+            WHERE r.id = ? AND r.status = 'pending'
+        """, (reservation_id,))
+        
+        reservation = cursor.fetchone()
+        if not reservation:
+            return {'success': False, 'message': 'Reservation not found or already processed'}
+        
+        # Extract data from reservation
+        user_id = reservation[1]
+        laboratory = reservation[2]
+        purpose = reservation[3]
+        computer_id = reservation[7]
+        firstname = reservation[11]
+        lastname = reservation[12]
+        computer_number = reservation[13]
+        student_name = f"{firstname} {lastname}"
+        
+        # Get current timestamp
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 1. Update reservation status to approved
+        cursor.execute("""
+            UPDATE reservations 
+            SET status = 'approved' 
+            WHERE id = ?
+        """, (reservation_id,))
+        
+        # 2. Create current sit-in record in sitin_history
+        cursor.execute("""
+            INSERT INTO sitin_history (user_id, student_name, purpose, laboratory, time_in, computer_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, student_name, purpose, laboratory, current_time, computer_id))
+        
+        # 3. INSERT INTO current_sitins table
+        cursor.execute("""
+            INSERT INTO current_sitins (user_id, student_name, purpose, laboratory, time_in, computer_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, student_name, purpose, laboratory, current_time, computer_id))
+        print("Inserted into current_sitins:", user_id, student_name, purpose, laboratory, current_time, computer_id)
+        
+        # 4. Update computer status to 'in_use' and set current user
+        cursor.execute("""
+            UPDATE computers 
+            SET status = 'in_use', current_user = ?
+            WHERE id = ?
+        """, (student_name, computer_id))
+        
+        # 5. Deduct one session from user's remaining sessions
+        cursor.execute("""
+            UPDATE user 
+            SET remaining_sessions = remaining_sessions - 1 
+            WHERE id = ? AND remaining_sessions > 0
+        """, (user_id,))
+        
+        # 6. Create notification for the student
+        if 'create_notification' in globals():
+            create_notification(user_id, 
+                f"Your reservation for Lab {laboratory} PC {computer_number} has been approved and you have been automatically sat-in!", 
+                'reservation_approved')
+        
+        conn.commit()
+        return {
+            'success': True, 
+            'message': f'Reservation approved and student {student_name} automatically sat-in to Lab {laboratory} PC {computer_number}'
+        }
+        
+    except Exception as e:
+        print(f"Error in approve_reservation_and_sitin: {e}")
+        conn.rollback()
+        return {'success': False, 'message': f'Error processing reservation: {str(e)}'}
+    finally:
+        conn.close()
 
 # Call this function after creating tables
 create_tables()

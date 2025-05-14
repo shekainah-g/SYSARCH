@@ -517,37 +517,88 @@ def create_reservation():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/get_my_reservations')
+@login_required
 def get_my_reservations():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    reservations = dbhelper.get_student_reservations(session['user_id'])
-    return jsonify({'reservations': reservations})
+    try:
+        if current_user.role != 'student':
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+        reservations = dbhelper.get_student_reservations(current_user.id)
+        
+        # Convert to list of dicts
+        reservations_list = []
+        for r in reservations:
+            reservations_list.append({
+                'id': r[0],
+                'laboratory': r[2],
+                'computer_number': r[11] if len(r) > 11 else 'N/A',
+                'reservation_date': r[4],
+                'start_time': r[5],
+                'end_time': r[6],
+                'purpose': r[3],
+                'status': r[8] if len(r) > 8 else 'pending'
+            })
+        
+        return jsonify({
+            'success': True,
+            'reservations': reservations_list
+        })
+    except Exception as e:
+        print(f"Error getting student reservations: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'reservations': []
+        })
 
 @app.route('/admin/reservations')
 def admin_reservations():
-    if 'username' not in session or session.get('role') != 'admin':
-        return redirect(url_for('login'))
-    
     try:
-        pending_reservations = dbhelper.get_pending_reservations()
-        return render_template('admin_reservations.html', reservations=pending_reservations)
+        # Get pending reservations with additional details
+        reservations = dbhelper.get_pending_reservations()
+        return render_template('admin_reservations.html', reservations=reservations)
     except Exception as e:
-        print(f"Error in admin_reservations: {e}")
-        return redirect(url_for('admin_dashboard'))
+        print(f"Error loading admin reservations: {e}")
+        return render_template('admin_reservations.html', reservations=[])
 
 @app.route('/admin/get_reservations')
 def get_reservations():
-    if 'username' not in session or session.get('role') != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 401
-    
     try:
-        laboratory = request.args.get('laboratory')
+        laboratory = request.args.get('laboratory', '')
         reservations = dbhelper.get_pending_reservations()
-        return jsonify({'reservations': reservations})
+        
+        # Filter by laboratory if specified
+        if laboratory:
+            reservations = [r for r in reservations if r[2] == laboratory]  # Assuming index 2 is laboratory
+        
+        # Convert to list of dicts for JSON serialization
+        reservations_list = []
+        for r in reservations:
+            reservations_list.append({
+                'id': r[0],
+                'user_id': r[1],
+                'laboratory': r[2],
+                'purpose': r[3],
+                'reservation_date': r[4],
+                'start_time': r[5],
+                'end_time': r[6],
+                'computer_number': r[11] if len(r) > 11 else 'N/A',
+                'student_name': f"{r[9]} {r[10]}" if len(r) > 10 else 'Unknown',
+                'course': r[12] if len(r) > 12 else '',
+                'yearlvl': r[13] if len(r) > 13 else ''
+            })
+        
+        return jsonify({
+            'success': True,
+            'reservations': reservations_list
+        })
     except Exception as e:
         print(f"Error getting reservations: {e}")
-        return jsonify({'error': 'Error getting reservations'}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'reservations': []
+        })
 
 @app.route('/admin/update_reservation_status', methods=['POST'])
 def update_reservation_status():
@@ -562,86 +613,12 @@ def update_reservation_status():
         if not reservation_id or not status:
             return jsonify({'error': 'Missing required parameters'}), 400
         
-        # Get reservation details
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        success, message = dbhelper.update_reservation_status(reservation_id, status)
         
-        cursor.execute("""
-            SELECT r.*, c.computer_number, c.status as computer_status
-            FROM reservations r
-            LEFT JOIN computers c ON r.computer_id = c.id
-            WHERE r.id = ?
-        """, (reservation_id,))
-        
-        reservation = cursor.fetchone()
-        if not reservation:
-            conn.close()
-            return jsonify({'error': 'Reservation not found'}), 404
-        
-        # If approving, check if computer is available
-        if status == 'approved':
-            if not reservation[7]:  # computer_id is None
-                conn.close()
-                return jsonify({'error': 'No computer selected for this reservation'}), 400
-            
-            # Check if computer is already in use or reserved
-            cursor.execute("""
-                SELECT COUNT(*) FROM current_sitins WHERE computer_id = ?
-            """, (reservation[7],))
-            if cursor.fetchone()[0] > 0:
-                conn.close()
-                return jsonify({'error': f'PC {reservation[8]} is currently in use'}), 400
-            
-            cursor.execute("""
-                SELECT COUNT(*) FROM reservations 
-                WHERE computer_id = ? 
-                AND status = 'approved'
-                AND reservation_date = ?
-                AND (
-                    (start_time <= ? AND end_time > ?) OR
-                    (start_time < ? AND end_time >= ?) OR
-                    (start_time >= ? AND end_time <= ?)
-                )
-            """, (reservation[7], reservation[4], reservation[5], reservation[5], 
-                  reservation[6], reservation[6], reservation[5], reservation[6]))
-            
-            if cursor.fetchone()[0] > 0:
-                conn.close()
-                return jsonify({'error': f'PC {reservation[8]} is already reserved for this time slot'}), 400
-            
-            # Update computer status to reserved
-            cursor.execute("""
-                UPDATE computers
-                SET status = 'reserved'
-                WHERE id = ?
-            """, (reservation[7],))
-        
-        # Update reservation status
-        cursor.execute("""
-            UPDATE reservations
-            SET status = ?
-            WHERE id = ?
-        """, (status, reservation_id))
-        
-        # Create notification
-        user_id = reservation[1]
-        lab = reservation[2]
-        computer_id = reservation[7]
-        date = reservation[4]
-        start_time = reservation[5]
-        end_time = reservation[6]
-        
-        message = f"Your reservation for Lab {lab} (PC{reservation[8]}) on {date} from {start_time} to {end_time} has been {status}"
-        notification_type = 'reservation'
-        
-        cursor.execute("""
-            INSERT INTO notifications (user_id, message, type, is_read, created_at)
-            VALUES (?, ?, ?, 0, datetime('now'))
-        """, (user_id, message, notification_type))
-        
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True, 'message': f'Reservation {status} successfully'})
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'error': message}), 400
     except Exception as e:
         print(f"Error updating reservation status: {e}")
         return jsonify({'error': str(e)}), 500
