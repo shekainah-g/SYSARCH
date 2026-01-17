@@ -1,0 +1,191 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<style>
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #ffffff;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page {
+        width: 800px;
+        margin: 30px auto;
+        padding: 20px 40px;
+        border: 1px solid #ddd;
+        box-sizing: border-box;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header img {
+        height: 65px;
+    }
+
+    .title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: bold;
+        margin: 20px 0;
+    }
+
+    .intro {
+        font-size: 14px;
+        margin-bottom: 15px;
+        text-align: justify;
+    }
+
+    ol {
+        font-size: 14px;
+        padding-left: 20px;
+        text-align: justify;
+    }
+
+    ol li {
+        margin-bottom: 10px;
+    }
+
+    ul {
+        padding-left: 20px;
+        list-style-type: lower-alpha;
+        margin-top: 8px;
+    }
+
+    ul li {
+        margin-bottom: 5px;
+    }
+
+    .section-title {
+        font-weight: bold;
+        margin-top: 25px;
+        font-size: 15px;
+    }
+
+    .discipline p {
+        font-size: 14px;
+        margin: 6px 0;
+    }
+</style>
+</head>
+
+<body>
+
+    <div class="page">
+
+        <!-- Header -->
+        <div class="header">
+            <img src="{{ url_for('static', filename='image/CCS_LOGO.png') }}" alt="CICS Logo">
+            <img src="{{ url_for('static', filename='image/University_of_Cebu_Logo.png') }}"
+                alt="University of Cebu Logo">
+        </div>
+
+        <!-- Title -->
+        <div class="title">
+            Sit-In Rules and Regulations
+        </div>
+
+        <!-- Intro -->
+        <p class="intro">
+            Sit-in privileges are granted to students for academic-related activities.
+            To ensure fair usage, safety, and proper laboratory management, all sit-in
+            users must strictly observe the following rules and regulations:
+        </p>
+
+        <!-- Rules -->
+        <ol>
+            <li>
+                Sit-in users must register properly and secure approval from the laboratory
+                personnel before using any computer unit.
+            </li>
+
+            <li>
+                Sit-in is allowed only during vacant laboratory schedules and is subject
+                to availability of computer units.
+            </li>
+
+            <li>
+                Priority shall always be given to classes, laboratory sessions,
+                and officially scheduled academic activities.
+            </li>
+
+            <li>
+                Sit-in privileges are intended strictly for academic purposes such as:
+                <ul>
+                    <li>Research and school-related activities</li>
+                    <li>Programming and system development</li>
+                    <li>Project and assignment completion</li>
+                </ul>
+            </li>
+
+            <li>
+                Accessing non-academic, illegal, pornographic, or offensive websites
+                is strictly prohibited.
+            </li>
+
+            <li>
+                Playing games, watching movies, streaming, or using social media
+                unrelated to academic work is not allowed.
+            </li>
+
+            <li>
+                Downloading, installing, deleting files, or modifying computer settings
+                without permission from laboratory personnel is prohibited.
+            </li>
+
+            <li>
+                Sit-in users must observe proper decorum and maintain silence inside the laboratory.
+                Acts that may disturb other users are not tolerated.
+            </li>
+
+            <li>
+                Food, drinks, chewing gum, smoking, and any form of vandalism
+                are strictly prohibited inside the laboratory.
+            </li>
+
+            <li>
+                Personal belongings such as bags and backpacks must be placed
+                in the designated area as instructed by the laboratory personnel.
+            </li>
+
+            <li>
+                Sit-in users must log out, close all programs, and properly shut down
+                the computer after use.
+            </li>
+
+            <li>
+                Any technical problem or system malfunction must be reported immediately
+                to the laboratory supervisor or student assistant.
+            </li>
+
+            <li>
+                Failure to comply with these rules may result in suspension or revocation
+                of sit-in privileges.
+            </li>
+        </ol>
+
+        <!-- Disciplinary Action -->
+        <div class="section-title">DISCIPLINARY ACTION</div>
+
+        <div class="discipline">
+            <p>
+                • <strong>First Offense</strong> – Verbal warning and possible suspension
+                of sit-in privileges.
+            </p>
+            <p>
+                • <strong>Second Offense</strong> – Temporary revocation of sit-in privileges
+                and endorsement to the Guidance Office.
+            </p>
+            <p>
+                • <strong>Serious or Repeated Offenses</strong> – Permanent disqualification
+                from sit-in privileges and possible disciplinary action per university policy.
+            </p>
+        </div>
+
+    </div>
+
+
+    {% endblock %}

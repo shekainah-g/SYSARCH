@@ -200,6 +200,10 @@ def labrules():
     
     return render_template('labrules.html')
 
+@app.route('/sitin_rulees')
+def sitin_rulees():
+    return render_template('sitin_rulees.html')
+
 
 @app.route('/edit', methods=['GET', 'POST'])
 def edit_profile():
@@ -517,31 +521,17 @@ def create_reservation():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/get_my_reservations')
-@login_required
 def get_my_reservations():
     try:
-        if current_user.role != 'student':
+        if 'user_id' not in session:
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
         
-        reservations = dbhelper.get_student_reservations(current_user.id)
+        reservations = dbhelper.get_student_reservations(session['user_id'])
         
-        # Convert to list of dicts
-        reservations_list = []
-        for r in reservations:
-            reservations_list.append({
-                'id': r[0],
-                'laboratory': r[2],
-                'computer_number': r[11] if len(r) > 11 else 'N/A',
-                'reservation_date': r[4],
-                'start_time': r[5],
-                'end_time': r[6],
-                'purpose': r[3],
-                'status': r[8] if len(r) > 8 else 'pending'
-            })
-        
+        # Return the reservations directly as they are already formatted as dictionaries
         return jsonify({
             'success': True,
-            'reservations': reservations_list
+            'reservations': reservations
         })
     except Exception as e:
         print(f"Error getting student reservations: {e}")
@@ -551,46 +541,84 @@ def get_my_reservations():
             'reservations': []
         })
 
+@app.route('/get_my_sitin_history')
+def get_my_sitin_history():
+    try:
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+        sit_in_history = dbhelper.get_student_history(session['user_id'])
+        
+        return jsonify({
+            'success': True,
+            'history': sit_in_history
+        })
+    except Exception as e:
+        print(f"Error getting student sit-in history: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'history': []
+        })
+
 @app.route('/admin/reservations')
 def admin_reservations():
     try:
         # Get pending reservations with additional details
+        print("Fetching pending reservations...")
         reservations = dbhelper.get_pending_reservations()
-        return render_template('admin_reservations.html', reservations=reservations)
+        print(f"Found {len(reservations)} pending reservations")
+        
+        # Check if this is an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        print(f"Is AJAX request: {is_ajax}")
+        
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'reservations': reservations
+            })
+        else:
+            # Return the HTML template for regular page loads
+            return render_template('admin_reservations.html', reservations=reservations)
     except Exception as e:
         print(f"Error loading admin reservations: {e}")
-        return render_template('admin_reservations.html', reservations=[])
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'reservations': []
+            })
+        else:
+            return render_template('admin_reservations.html', reservations=[])
 
 @app.route('/admin/get_reservations')
 def get_reservations():
     try:
         laboratory = request.args.get('laboratory', '')
+        print(f"Fetching pending reservations, lab filter: {laboratory}")
+        
         reservations = dbhelper.get_pending_reservations()
+        print(f"Found {len(reservations)} pending reservations before filtering")
+        
+        # Debug info for each reservation
+        for r in reservations:
+            print(f"Reservation data: ID={r['id']}, Lab={r['laboratory']}, PC={r['computer_number']}, Computer ID={r.get('computer_id')}")
         
         # Filter by laboratory if specified
         if laboratory:
-            reservations = [r for r in reservations if r[2] == laboratory]  # Assuming index 2 is laboratory
+            reservations = [r for r in reservations if r['laboratory'] == laboratory]
+            print(f"After filtering for laboratory {laboratory}: {len(reservations)} reservations remaining")
         
-        # Convert to list of dicts for JSON serialization
-        reservations_list = []
+        # Ensure all computer numbers are properly formatted
         for r in reservations:
-            reservations_list.append({
-                'id': r[0],
-                'user_id': r[1],
-                'laboratory': r[2],
-                'purpose': r[3],
-                'reservation_date': r[4],
-                'start_time': r[5],
-                'end_time': r[6],
-                'computer_number': r[11] if len(r) > 11 else 'N/A',
-                'student_name': f"{r[9]} {r[10]}" if len(r) > 10 else 'Unknown',
-                'course': r[12] if len(r) > 12 else '',
-                'yearlvl': r[13] if len(r) > 13 else ''
-            })
+            if r['computer_number'] and r['computer_number'] != 'N/A' and not str(r['computer_number']).startswith('PC'):
+                r['computer_number'] = f"PC{r['computer_number']}"
+                print(f"Formatted computer number to: {r['computer_number']}")
         
         return jsonify({
             'success': True,
-            'reservations': reservations_list
+            'reservations': reservations
         })
     except Exception as e:
         print(f"Error getting reservations: {e}")
@@ -1204,8 +1232,8 @@ def get_notifications():
             'notifications': []
         }), 500
 
-@app.route('/mark_notification_read/<int:notification_id>', methods=['POST'])
-def mark_notification_read(notification_id):
+@app.route('/mark_notification_read', methods=['POST'])
+def mark_notification_read():
     if 'user_id' not in session:
         return jsonify({
             'success': False,
@@ -1213,6 +1241,15 @@ def mark_notification_read(notification_id):
         }), 401
     
     try:
+        data = request.get_json()
+        notification_id = data.get('notification_id')
+        
+        if not notification_id:
+            return jsonify({
+                'success': False,
+                'error': 'Missing notification ID'
+            }), 400
+            
         success = dbhelper.mark_notification_read(notification_id)
         if success:
             return jsonify({

@@ -1,5 +1,6 @@
 {% extends 'index.html' %}
 {% block content %}
+
 <head>
     <style>
         .form-container {
@@ -24,7 +25,8 @@
             flex: 1;
         }
 
-        input, select {
+        input,
+        select {
             width: 100%;
             padding: 8px;
             margin: 5px 0;
@@ -40,7 +42,7 @@
             margin-top: 10px;
             padding: 10px;
             width: 100%;
-            background-color: #4CAF50;
+            background-color: var(--blue-400);
             color: white;
             border: none;
             border-radius: 5px;
@@ -48,7 +50,7 @@
         }
 
         button:hover {
-            background-color: #45a049;
+            background-color: var(--blue-500);
         }
 
         .flash-messages {
@@ -129,28 +131,28 @@
         </form>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash {{ category }}">
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% endwith %}
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const studentIdInput = document.getElementById("id");
             const usernameInput = document.getElementById("username");
-    
-            studentIdInput.addEventListener("input", function() {
+
+            studentIdInput.addEventListener("input", function () {
                 usernameInput.value = studentIdInput.value;
             });
         });
     </script>
-    
+
 </body>
 {% endblock %}

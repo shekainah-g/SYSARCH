@@ -26,7 +26,8 @@
                     <td>{{ sitin.time_in }}</td>
                     <td>{{ sitin.points }}</td>
                     <td>
-                        <button onclick="openPointsLogoutModal('{{ sitin.student_id }}', '{{ sitin.name }}', {{ sitin.points }})" class="w3-button w3-green">Add Points & Logout</button>
+                        <button onclick="addPointAndLogout('{{ sitin.student_id }}')" class="w3-button w3-green">Add Point & Logout</button>
+                        <button onclick="logoutStudent('{{ sitin.student_id }}')" class="w3-button w3-red">Logout</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -93,6 +94,58 @@ function logoutStudent(studentId) {
     }
 }
 
+// Function to add 1 point and logout
+function addPointAndLogout(studentId) {
+    if (confirm('Are you sure you want to add 1 point and logout this student?')) {
+        // Add 1 point first
+        fetch('/add_points', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                points: 1
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Now log out the student
+                fetch('/log_out_student', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ student_id: studentId })
+                })
+                .then(response => response.json())
+                .then(data2 => {
+                    if (data2.success) {
+                        // Remove the row from the table
+                        const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+                        if (row) {
+                            row.remove();
+                        }
+                    } else {
+                        alert(data2.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error logging out student');
+                });
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding points');
+        });
+    }
+}
+
 // Function to update current sit-ins table
 function updateCurrentSitins() {
     fetch('/get_current_sitins')
@@ -112,6 +165,7 @@ function updateCurrentSitins() {
                     <td>${sitin.time_in}</td>
                     <td>${sitin.points}</td>
                     <td>
+                        <button onclick="addPointAndLogout('${sitin.student_id}')" class="w3-button w3-green">Add 1 Point & Logout</button>
                         <button onclick="logoutStudent('${sitin.student_id}')" class="w3-button w3-red">Logout</button>
                     </td>
                 `;

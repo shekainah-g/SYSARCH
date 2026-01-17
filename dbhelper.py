@@ -815,19 +815,24 @@ def create_reservations_table():
 
 def create_reservation(user_id, laboratory, purpose, reservation_date, start_time, end_time, computer_id):
     try:
+        print(f"Creating reservation: user_id={user_id}, lab={laboratory}, purpose={purpose}, date={reservation_date}, time={start_time}-{end_time}, computer_id={computer_id}")
         conn = get_db_connection()
         cursor = conn.cursor()
         
         # Check if computer is available
         cursor.execute("""
-            SELECT status
+            SELECT status, computer_number
             FROM computers
             WHERE id = ?
         """, (computer_id,))
         
         computer = cursor.fetchone()
         if not computer or computer[0] != 'available':
+            print(f"Computer {computer_id} is not available. Status: {computer[0] if computer else 'Not found'}")
             return False, "Selected computer is not available"
+        
+        computer_number = computer[1]
+        print(f"Computer number for computer_id={computer_id}: {computer_number}")
         
         # Check for overlapping reservations
         cursor.execute("""
@@ -843,7 +848,9 @@ def create_reservation(user_id, laboratory, purpose, reservation_date, start_tim
             AND status != 'rejected'
         """, (laboratory, reservation_date, computer_id, start_time, start_time, end_time, end_time, start_time, end_time))
         
-        if cursor.fetchone()[0] > 0:
+        overlap_count = cursor.fetchone()[0]
+        if overlap_count > 0:
+            print(f"Time slot already reserved. Found {overlap_count} overlapping reservations")
             return False, "Time slot already reserved for this computer"
         
         # Create new reservation
@@ -851,6 +858,10 @@ def create_reservation(user_id, laboratory, purpose, reservation_date, start_tim
             INSERT INTO reservations (user_id, laboratory, purpose, reservation_date, start_time, end_time, computer_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (user_id, laboratory, purpose, reservation_date, start_time, end_time, computer_id))
+        
+        # Get the ID of the newly created reservation
+        new_id = cursor.lastrowid
+        print(f"Reservation created successfully with ID {new_id} and default status 'pending'")
         
         conn.commit()
         conn.close()
@@ -865,7 +876,20 @@ def get_student_reservations(user_id):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT r.*, u.firstname, u.lastname, c.computer_number
+            SELECT 
+                r.id, 
+                r.user_id, 
+                r.laboratory, 
+                r.purpose, 
+                r.reservation_date, 
+                r.start_time, 
+                r.end_time, 
+                r.computer_id, 
+                r.status, 
+                r.created_at, 
+                u.firstname, 
+                u.lastname, 
+                c.computer_number
             FROM reservations r
             JOIN users u ON r.user_id = u.id
             LEFT JOIN computers c ON r.computer_id = c.id
@@ -874,58 +898,141 @@ def get_student_reservations(user_id):
         """, (user_id,))
         
         reservations = cursor.fetchall()
-        conn.close()
         
-        return [{
-            "id": r[0],
-            "laboratory": r[2],
-            "purpose": r[3],
-            "reservation_date": r[4],
-            "start_time": r[5],
-            "end_time": r[6],
-            "computer_id": r[7],
-            "status": r[8],
-            "created_at": r[9],
-            "student_name": f"{r[10]} {r[11]}",
-            "computer_number": r[12] if r[12] else 'Not assigned'
-        } for r in reservations]
+        # Get accurate computer information for each reservation
+        result = []
+        for r in reservations:
+            # If there's a computer_id, get the complete computer information directly
+            computer_number = None
+            if r[7]:  # computer_id
+                cursor.execute("SELECT computer_number FROM computers WHERE id = ?", (r[7],))
+                comp_data = cursor.fetchone()
+                if comp_data:
+                    computer_number = comp_data[0]
+                    print(f"Student reservation {r[0]}: Found computer number {computer_number} for computer ID {r[7]}")
+            
+            # Use the directly retrieved computer_number if available, otherwise use the joined one
+            display_computer_number = None
+            if computer_number:
+                display_computer_number = format_computer_number(computer_number)
+            elif r[12]:  # computer_number from join
+                display_computer_number = format_computer_number(r[12])
+            else:
+                display_computer_number = 'Not assigned'
+                
+            reservation_data = {
+                "id": r[0],
+                "laboratory": r[2],
+                "purpose": r[3],
+                "reservation_date": r[4],
+                "start_time": r[5],
+                "end_time": r[6],
+                "computer_id": r[7],
+                "status": r[8],
+                "created_at": r[9],
+                "student_name": f"{r[10]} {r[11]}",
+                "computer_number": display_computer_number
+            }
+            result.append(reservation_data)
+            
+        conn.close()
+        return result
     except Exception as e:
         print(f"Error getting student reservations: {e}")
         return []
 
 def get_pending_reservations():
     try:
+        print("Starting get_pending_reservations function")
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        print("Executing SQL query for pending reservations...")
         cursor.execute("""
-            SELECT r.*, u.firstname, u.lastname, u.course, u.yearlvl
+            SELECT 
+                r.id, 
+                r.user_id, 
+                r.laboratory, 
+                r.purpose, 
+                r.reservation_date, 
+                r.start_time, 
+                r.end_time, 
+                r.status, 
+                r.created_at, 
+                r.computer_id,
+                u.firstname, 
+                u.lastname, 
+                u.course, 
+                u.yearlvl, 
+                c.computer_number
             FROM reservations r
             JOIN users u ON r.user_id = u.id
+            LEFT JOIN computers c ON r.computer_id = c.id
             WHERE r.status = 'pending'
             ORDER BY r.created_at DESC
         """)
         
         reservations = cursor.fetchall()
-        conn.close()
+        print(f"Query executed. Found {len(reservations) if reservations else 0} pending reservations")
         
-        return [{
-            "id": r[0],
-            "user_id": r[1],
-            "laboratory": r[2],
-            "purpose": r[3],
-            "reservation_date": r[4],
-            "start_time": r[5],
-            "end_time": r[6],
-            "status": r[7],
-            "created_at": r[8],
-            "student_name": f"{r[9]} {r[10]}",
-            "course": r[11],
-            "yearlvl": r[12]
-        } for r in reservations]
+        # Debug information for each reservation and its computer
+        result = []
+        for r in reservations:
+            # If there's a computer_id, get the complete computer information directly
+            computer_number = None
+            if r[9]:  # computer_id
+                cursor.execute("""
+                    SELECT computer_number 
+                    FROM computers 
+                    WHERE id = ?
+                """, (r[9],))
+                comp_data = cursor.fetchone()
+                if comp_data:
+                    computer_number = comp_data[0]
+                    print(f"Reservation {r[0]}: Found computer number {computer_number} for computer ID {r[9]}")
+                else:
+                    print(f"Reservation {r[0]}: No computer found with ID {r[9]}")
+            
+            # Use the directly retrieved computer_number if available, otherwise use the joined one
+            display_computer_number = None
+            if computer_number:
+                display_computer_number = format_computer_number(computer_number)
+            elif r[14]:  # computer_number from join
+                display_computer_number = format_computer_number(r[14])
+            else:
+                display_computer_number = 'N/A'
+                
+            reservation_data = {
+                "id": r[0],
+                "user_id": r[1],
+                "laboratory": r[2],
+                "purpose": r[3],
+                "reservation_date": r[4],
+                "start_time": r[5],
+                "end_time": r[6],
+                "status": r[7],
+                "created_at": r[8],
+                "computer_id": r[9],
+                "student_name": f"{r[10]} {r[11]}",
+                "course": r[12],
+                "yearlvl": r[13],
+                "computer_number": display_computer_number
+            }
+            result.append(reservation_data)
+            print(f"Added reservation: {reservation_data['id']} with PC number: {reservation_data['computer_number']}")
+            
+        conn.close()
+        print(f"Returning {len(result)} reservations")
+        return result
     except Exception as e:
         print(f"Error getting pending reservations: {e}")
         return []
+        
+def format_computer_number(number):
+    """Format computer number consistently with 'PC' prefix"""
+    if number and number != 'N/A' and not str(number).startswith('PC'):
+        return f"PC{number}"
+    return number
 
 def create_notification(user_id, message, notification_type='reservation'):
     try:
@@ -965,6 +1072,17 @@ def update_reservation_status(reservation_id, status):
         purpose = reservation[3]
         computer_id = reservation[7]
         
+        # Get actual computer number directly from computers table
+        computer_number = None
+        if computer_id:
+            cursor.execute("SELECT computer_number FROM computers WHERE id = ?", (computer_id,))
+            comp_result = cursor.fetchone()
+            if comp_result:
+                computer_number = comp_result[0]
+                print(f"Found computer number {computer_number} for computer ID {computer_id}")
+            else:
+                print(f"No computer found with ID {computer_id}")
+        
         # Update reservation status
         cursor.execute("""
             UPDATE reservations
@@ -998,7 +1116,14 @@ def update_reservation_status(reservation_id, status):
             """, (computer_id,))
         
         # Create notification
-        computer_number = reservation[12] if len(reservation) > 12 else 'N/A'
+        # Format computer number for display
+        if computer_number and not str(computer_number).startswith('PC'):
+            computer_number = f"PC{computer_number}"
+        else:
+            computer_number = reservation[len(reservation)-1] if len(reservation) > 10 else 'N/A'
+            if computer_number and not str(computer_number).startswith('PC') and computer_number != 'N/A':
+                computer_number = f"PC{computer_number}"
+        
         date = reservation[4]
         start_time = reservation[5]
         end_time = reservation[6]
@@ -1084,7 +1209,8 @@ def get_student_history(user_id):
                 h.time_in,
                 h.time_out,
                 h.points,
-                f.feedback
+                f.feedback,
+                h.computer_id
             FROM sit_in_history h
             LEFT JOIN feedbacks f ON h.id = f.sitin_id
             WHERE h.user_id = ?
@@ -1103,7 +1229,8 @@ def get_student_history(user_id):
                 'time_in': record[3],
                 'time_out': record[4],
                 'points': record[5],
-                'feedback': record[6]
+                'feedback': record[6],
+                'computer_id': record[7]
             })
         
         conn.close()
@@ -1402,14 +1529,22 @@ def get_available_computers(laboratory, date, start_time, end_time):
         # Format the result
         available_computers = []
         for computer in computers:
+            comp_id = computer[0]
+            comp_number = computer[1]
+            
+            # Make sure the computer number format is consistent (PC followed by number)
+            if not comp_number.startswith('PC'):
+                comp_number = f"PC{comp_number}"
+            
             is_available = (
-                computer[0] not in reserved_computers and
-                computer[0] not in occupied_computers and
+                comp_id not in reserved_computers and
+                comp_id not in occupied_computers and
                 computer[2] == 'available'
             )
+            
             available_computers.append({
-                'id': computer[0],
-                'computer_number': computer[1],
+                'id': comp_id,
+                'computer_number': comp_number,
                 'available': is_available
             })
         
@@ -1670,7 +1805,7 @@ def get_user_notifications(user_id):
         return [{
             'id': n[0],
             'message': n[1],
-            'read': bool(n[2]),
+            'is_read': bool(n[2]),
             'created_at': n[3]
         } for n in notifications]
     except Exception as e:

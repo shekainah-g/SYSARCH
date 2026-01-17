@@ -55,7 +55,8 @@
                 </div>
                 <div class="leaderboard-container">
                     {% for student in top_students %}
-                    <div class="leaderboard-item {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
+                    <div
+                        class="leaderboard-item {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
                         <div class="rank">#{{ loop.index }}</div>
                         <div class="student-info">
                             <div class="name">{{ student.name }}</div>
@@ -79,24 +80,26 @@
                 </div>
                 <div class="announcement-form">
                     <form id="announcementForm">
-                        <textarea id="announcementText" placeholder="Enter your announcement here..." required></textarea>
-                        <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Post Announcement</button>
+                        <textarea id="announcementText" placeholder="Enter your announcement here..."
+                            required></textarea>
+                        <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Post
+                            Announcement</button>
                     </form>
                 </div>
                 <div class="announcement-list">
                     {% if announcements %}
-                        {% for announcement in announcements %}
-                            <div class="announcement-item">
-                                <div class="announcement-content">
-                                    <p>{{ announcement.announcement }}</p>
-                                    <small class="announcement-date">{{ announcement.date_created }}</small>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="no-announcements">
-                            <p>No announcements yet.</p>
+                    {% for announcement in announcements %}
+                    <div class="announcement-item">
+                        <div class="announcement-content">
+                            <p>{{ announcement.announcement }}</p>
+                            <small class="announcement-date">{{ announcement.date_created }}</small>
                         </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="no-announcements">
+                        <p>No announcements yet.</p>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -105,317 +108,317 @@
 </div>
 
 <style>
-.dashboard-container {
-    padding: 20px;
-    background-color: #f8f9fa;
-    min-height: calc(100vh - 60px);
-}
-
-/* Stats Row */
-.stats-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.stat-icon {
-    font-size: 2rem;
-    margin-right: 20px;
-    color: #8a3cfe;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(138, 60, 254, 0.1);
-    border-radius: 12px;
-}
-
-.stat-content h3 {
-    margin: 0;
-    font-size: 1rem;
-    color: #666;
-    font-weight: 500;
-}
-
-.stat-value {
-    margin: 5px 0 0;
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-/* Main Content Row */
-.main-content-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-@media (max-width: 1200px) {
-    .main-content-row {
-        grid-template-columns: 1fr;
+    .dashboard-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        min-height: calc(100vh - 60px);
     }
-}
 
-/* Card Styles */
-.w3-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    overflow: hidden;
-}
+    /* Stats Row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
 
-.card-header {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
 
-.card-header h2 {
-    margin: 0;
-    color: #2c3e50;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
 
-.card-actions {
-    display: flex;
-    gap: 10px;
-}
+    .stat-icon {
+        font-size: 2rem;
+        margin-right: 20px;
+        color: var(--blue-400);
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(47, 95, 138, 0.1);
+        border-radius: 12px;
+    }
 
-.refresh-btn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: #666;
-    transition: color 0.2s;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    .stat-content h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: #666;
+        font-weight: 500;
+    }
 
-.refresh-btn:hover {
-    color: #8a3cfe;
-    background: rgba(138, 60, 254, 0.1);
-}
+    .stat-value {
+        margin: 5px 0 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
 
-/* Leaderboard Styles */
-.leaderboard-container {
-    max-height: 500px;
-    overflow-y: auto;
-    padding: 20px;
-}
+    /* Main Content Row */
+    .main-content-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
 
-.leaderboard-item {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    margin-bottom: 10px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    transition: transform 0.2s;
-}
+    @media (max-width: 1200px) {
+        .main-content-row {
+            grid-template-columns: 1fr;
+        }
+    }
 
-.leaderboard-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
+    /* Card Styles */
+    .w3-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
 
-.rank {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #666;
-    margin-right: 15px;
-    min-width: 30px;
-    text-align: center;
-}
+    .card-header {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-.student-info {
-    flex-grow: 1;
-}
+    .card-header h2 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-.name {
-    font-weight: 600;
-    color: #2c3e50;
-}
+    .card-actions {
+        display: flex;
+        gap: 10px;
+    }
 
-.details {
-    font-size: 0.9rem;
-    color: #666;
-}
+    .refresh-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: #666;
+        transition: color 0.2s;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-.points {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: #f8f9fa;
-    padding: 8px 15px;
-    border-radius: 20px;
-    min-width: 80px;
-}
+    .refresh-btn:hover {
+        color: var(--blue-400);
+        background: rgba(47, 95, 138, 0.1);
+    }
 
-.points-value {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #8a3cfe;
-}
+    /* Leaderboard Styles */
+    .leaderboard-container {
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 20px;
+    }
 
-.points-label {
-    font-size: 0.8rem;
-    color: #666;
-}
+    .leaderboard-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 10px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+    }
 
-/* Medal colors */
-.gold {
-    background: linear-gradient(135deg, #ffd700 0%, #fff 100%);
-}
+    .leaderboard-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
 
-.silver {
-    background: linear-gradient(135deg, #c0c0c0 0%, #fff 100%);
-}
+    .rank {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #666;
+        margin-right: 15px;
+        min-width: 30px;
+        text-align: center;
+    }
 
-.bronze {
-    background: linear-gradient(135deg, #cd7f32 0%, #fff 100%);
-}
+    .student-info {
+        flex-grow: 1;
+    }
 
-/* Announcements Styles */
-.announcement-form {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-}
+    .name {
+        font-weight: 600;
+        color: #2c3e50;
+    }
 
-#announcementText {
-    width: 100%;
-    height: 100px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    resize: none;
-    margin-bottom: 15px;
-    font-family: 'Poppins', sans-serif;
-    transition: all 0.3s ease;
-}
+    .details {
+        font-size: 0.9rem;
+        color: #666;
+    }
 
-#announcementText:focus {
-    border-color: #8a3cfe;
-    box-shadow: 0 0 5px rgba(138,60,254,0.3);
-}
+    .points {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #f8f9fa;
+        padding: 8px 15px;
+        border-radius: 20px;
+        min-width: 80px;
+    }
 
-.submit-btn {
-    background-color: #8a3cfe;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+    .points-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--blue-400);
+    }
 
-.submit-btn:hover {
-    background-color: #6a2cce;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
+    .points-label {
+        font-size: 0.8rem;
+        color: #666;
+    }
 
-.announcement-list {
-    padding: 20px;
-}
+    /* Medal colors */
+    .gold {
+        background: linear-gradient(135deg, #ffd700 0%, #fff 100%);
+    }
 
-.announcement-item {
-    padding: 15px;
-    border-bottom: 1px solid #eee;
-    transition: all 0.3s ease;
-}
+    .silver {
+        background: linear-gradient(135deg, #c0c0c0 0%, #fff 100%);
+    }
 
-.announcement-item:hover {
-    background: #f8f9fa;
-}
+    .bronze {
+        background: linear-gradient(135deg, #cd7f32 0%, #fff 100%);
+    }
 
-.announcement-item:last-child {
-    border-bottom: none;
-}
+    /* Announcements Styles */
+    .announcement-form {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+    }
 
-.announcement-content p {
-    margin: 0 0 5px 0;
-    color: #2c3e50;
-}
+    #announcementText {
+        width: 100%;
+        height: 100px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        resize: none;
+        margin-bottom: 15px;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
 
-.announcement-date {
-    color: #666;
-    font-size: 0.9rem;
-}
+    #announcementText:focus {
+        border-color: var(--blue-400);
+        box-shadow: 0 0 5px rgba(47, 95, 138, 0.3);
+    }
 
-.no-announcements {
-    text-align: center;
-    padding: 20px;
-    color: #666;
-}
+    .submit-btn {
+        background-color: var(--blue-400);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-/* Graph Styles */
-.stats-graph {
-    margin-bottom: 20px;
-}
+    .submit-btn:hover {
+        background-color: var(--blue-300);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
 
-.graph-container {
-    padding: 20px;
-    height: 300px;
-}
+    .announcement-list {
+        padding: 20px;
+    }
+
+    .announcement-item {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        transition: all 0.3s ease;
+    }
+
+    .announcement-item:hover {
+        background: #f8f9fa;
+    }
+
+    .announcement-item:last-child {
+        border-bottom: none;
+    }
+
+    .announcement-content p {
+        margin: 0 0 5px 0;
+        color: #2c3e50;
+    }
+
+    .announcement-date {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .no-announcements {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+    }
+
+    /* Graph Styles */
+    .stats-graph {
+        margin-bottom: 20px;
+    }
+
+    .graph-container {
+        padding: 20px;
+        height: 300px;
+    }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-// Daily Stats Chart
-const dailyStatsCtx = document.getElementById('dailyStatsChart').getContext('2d');
+    // Daily Stats Chart
+    const dailyStatsCtx = document.getElementById('dailyStatsChart').getContext('2d');
 
-const dailyStatsChart = new Chart(dailyStatsCtx, {
-    type: 'line',
-    data: {
-        labels: {{ daily_stats.dates | tojson | safe }},
-        datasets: [{
-            label: 'Number of Sit-ins',
-            data: {{ daily_stats.counts | tojson | safe }},
-            borderColor: '#8a3cfe',
-            backgroundColor: 'rgba(138, 60, 254, 0.1)',
-            borderWidth: 2,
-            tension: 0.4,
-            fill: true
+    const dailyStatsChart = new Chart(dailyStatsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ daily_stats.dates | tojson | safe }},
+    datasets: [{
+        label: 'Number of Sit-ins',
+        data: {{ daily_stats.counts | tojson | safe }},
+        borderColor: '#2F5F8A',
+        backgroundColor: 'rgba(47, 95, 138, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true
         }]
     },
     options: {
         responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
+            maintainAspectRatio: false,
+                plugins: {
             legend: {
                 display: false
             }
@@ -423,7 +426,7 @@ const dailyStatsChart = new Chart(dailyStatsCtx, {
         scales: {
             y: {
                 beginAtZero: true,
-                ticks: {
+                    ticks: {
                     stepSize: 1
                 }
             }
@@ -432,35 +435,35 @@ const dailyStatsChart = new Chart(dailyStatsCtx, {
 });
 
 
-document.getElementById('announcementForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const announcementText = document.getElementById('announcementText').value;
-    if (!announcementText.trim()) {
-        alert('Please enter an announcement');
-        return;
-    }
+    document.getElementById('announcementForm').addEventListener('submit', function (e) {
+        e.preventDefault();
 
-    const formData = new FormData();
-    formData.append('announcement', announcementText);
-
-    fetch('/post_announcement', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('announcementText').value = '';
-            location.reload();
-        } else {
-            alert(data.message);
+        const announcementText = document.getElementById('announcementText').value;
+        if (!announcementText.trim()) {
+            alert('Please enter an announcement');
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error posting announcement');
+
+        const formData = new FormData();
+        formData.append('announcement', announcementText);
+
+        fetch('/post_announcement', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('announcementText').value = '';
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error posting announcement');
+            });
     });
-});
 </script>
 {% endblock %}

@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial sale=1.0">
     <title>CSS Sit-in Monitoring System</title>
     <link rel="stylesheet" href="../static/css/w3.css">
     <style>
-         body {
+        body {
             background-image: url("{{ url_for('static', filename='image/lab.jpg') }}");
             background-size: cover;
             background-position: center;
@@ -15,44 +16,44 @@
             margin: 0;
         }
 
-    .container {
-        background-color: white;
-        padding: 20px;
-        border: 8px;
-        box-shadow: 0 0 10 rgba(0, 0, 0, 0.1 );
-        width: 700px;
-        position: fixed;
-    }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border: 8px;
+            box-shadow: 0 0 10 rgba(0, 0, 0, 0.1);
+            width: 700px;
+            position: fixed;
+        }
 
-    .flash-messages {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    width: 50%;
-    color: white;
-    padding: 20px;
-    }
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 50%;
+            color: white;
+            padding: 20px;
+        }
 
-    .flash {
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    }
+        .flash {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-    .flash.success {
-    background-color: rgba(40, 167, 69, 0.8);
-    }
+        .flash.success {
+            background-color: rgba(40, 167, 69, 0.8);
+        }
 
-    .flash.error {
-    background-color: rgba(220, 53, 69, 0.8);
-    }
+        .flash.error {
+            background-color: rgba(220, 53, 69, 0.8);
+        }
 
-    .form-container {
+        .form-container {
             width: 100%;
             max-width: 1000px;
             margin: 0 auto;
@@ -74,7 +75,9 @@
             display: block;
         }
 
-        input[type="text"], input[type="email"], input[type="password"] {
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
             width: 100%;
             padding: 12px;
             margin: 8px 0;
@@ -83,7 +86,8 @@
             font-size: 14px;
         }
 
-        select[id="course"],[id="yearlvl"]{    
+        select[id="course"],
+        [id="yearlvl"] {
             width: 100%;
             padding: 12px;
             margin: 8px 0;
@@ -93,7 +97,7 @@
         }
 
         button[type="submit"] {
-            background-color: #D0A823;
+            background-color: var(--blue-400);
             color: white;
             padding: 12px 20px;
             border: none;
@@ -105,29 +109,31 @@
         }
 
         button[type="submit"]:hover {
-            background-color: #faf8a3;
-            color: black;
+            background-color: var(--blue-200);
+            color: white;
         }
 
-        
-        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
-            border-color: #4CAF50;
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--blue-300);
             outline: none;
         }
-   
-    
     </style>
 </head>
+
 <body>
     {% block content %}
     {% endblock %}
 </body>
 <script>
     setTimeout(() => {
-                const flashMessages = document.querySelectorAll('.flash');
-                flashMessages.forEach(flash => {
-                    flash.style.display = 'none';
-                });
-            }, 3000);
+        const flashMessages = document.querySelectorAll('.flash');
+        flashMessages.forEach(flash => {
+            flash.style.display = 'none';
+        });
+    }, 3000);
 </script>
+
 </html>

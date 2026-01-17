@@ -25,6 +25,18 @@
             <i class="fas fa-history"></i> Logs
         </button>
     </h2>
+    
+    <!-- Debug info -->
+    <div class="w3-panel w3-pale-blue">
+        <p><strong>Debug Info:</strong> Server found {{ reservations|length }} pending reservations</p>
+        {% if reservations %}
+            <ul>
+            {% for res in reservations %}
+                <li>ID: {{ res.id }}, Student: {{ res.student_name }}, Lab: {{ res.laboratory }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
 
     <!-- Error Message Container -->
     <!-- <div id="errorMessage" class="w3-panel w3-red w3-display-container" style="display: none;">
@@ -323,7 +335,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadReservations() {
         const laboratory = labFilter.value;
         
-        fetch('/admin/reservations' + (laboratory ? `?laboratory=${laboratory}` : ''))
+        fetch('/admin/get_reservations' + (laboratory ? `?laboratory=${laboratory}` : ''), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
@@ -336,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 container.innerHTML = '';
                 
-                if (data.reservations.length === 0) {
+                if (!data.success || !data.reservations || data.reservations.length === 0) {
                     container.innerHTML = `
                         <div class="w3-panel w3-pale-yellow w3-border">
                             <p><i class="fas fa-info-circle"></i> No pending reservations found.</p>
@@ -344,6 +360,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     return;
                 }
+                
+                console.log("Reservations data:", data.reservations);
                 
                 const table = document.createElement('table');
                 table.className = 'w3-table w3-striped w3-bordered';
@@ -368,13 +386,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Create table body
                 const tbody = document.createElement('tbody');
                 data.reservations.forEach(reservation => {
+                    // Format PC number correctly
+                    let pcNumber = reservation.computer_number || 'N/A';
+                    console.log(`Processing reservation ID ${reservation.id}: computer_number=${pcNumber}, computer_id=${reservation.computer_id}`);
+                    
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${reservation.user_id}</td>
                         <td>${reservation.student_name}</td>
                         <td>${reservation.course} - ${reservation.yearlvl}</td>
                         <td>Lab ${reservation.laboratory}</td>
-                        <td>${reservation.computer_number || 'N/A'}</td>
+                        <td>${pcNumber}</td>
                         <td>${reservation.reservation_date}</td>
                         <td>${reservation.start_time} - ${reservation.end_time}</td>
                         <td>${reservation.purpose}</td>

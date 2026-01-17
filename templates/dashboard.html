@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
         * {
             font-family: 'Poppins', sans-serif;
@@ -17,7 +19,7 @@
 
         .navbar {
             background: #2c3e50;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .navbar a {
@@ -28,7 +30,7 @@
         }
 
         .navbar a:hover {
-            background: rgba(255,255,255,0.1) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
             transform: translateX(5px);
         }
 
@@ -40,13 +42,13 @@
 
         .w3-card {
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .w3-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .w3-button {
@@ -56,7 +58,7 @@
 
         .w3-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .w3-table {
@@ -65,7 +67,7 @@
         }
 
         .w3-table th {
-            background: #8a3cfe;
+            background: var(--blue-400);
             color: white;
             font-weight: 500;
         }
@@ -76,22 +78,25 @@
 
         .w3-modal-content {
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
 
-        .w3-input, .w3-select {
+        .w3-input,
+        .w3-select {
             border-radius: 8px;
             border: 1px solid #e0e0e0;
             padding: 10px;
             transition: all 0.3s ease;
         }
 
-        .w3-input:focus, .w3-select:focus {
-            border-color: #8a3cfe;
-            box-shadow: 0 0 5px rgba(138,60,254,0.3);
+        .w3-input:focus,
+        .w3-select:focus {
+            border-color: var(--blue-400);
+            box-shadow: 0 0 5px rgba(47, 95, 138, 0.3);
         }
 
-        h2, h3 {
+        h2,
+        h3 {
             color: #2c3e50;
             font-weight: 600;
         }
@@ -118,12 +123,12 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #8a3cfe;
+            background: var(--blue-400);
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #6a2cce;
+            background: var(--blue-300);
         }
 
         .notification-container {
@@ -134,7 +139,7 @@
             width: 300px;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             display: none;
         }
 
@@ -212,8 +217,15 @@
         }
 
         @keyframes notification-popup {
-            0% { transform: translateY(-100%); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
+            0% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .notification-popup {
@@ -224,31 +236,32 @@
             color: white;
             padding: 15px 20px;
             border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             animation: notification-popup 0.3s ease-out;
             z-index: 1001;
             display: none;
         }
     </style>
 </head>
+
 <body>
 
     <div class="navbar">
-    
+
         <div id="notificationContainer" class="notification-container">
             <div class="notification-header">
                 <h3>Notifications</h3>
             </div>
             <div id="notificationList" class="notification-list"></div>
         </div>
-        
+
         <a href="{{ url_for('information') }}" class="w3-bar-item w3-button">
             <i class="fas fa-info-circle"></i> Information
         </a>
         <a href="#" class="w3-bar-item w3-button">
             <i class="fas fa-clock"></i> Remaining Session
         </a>
-        <a href="#" class="w3-bar-item w3-button">
+        <a href="{{ url_for('sitin_rulees') }}" class="w3-bar-item w3-button">
             <i class="fas fa-list-ul"></i> Sit-in Rules
         </a>
         <a href="{{ url_for('labrules') }}" class="w3-bar-item w3-button">
@@ -288,7 +301,7 @@
 
     function w3_open() {
         document.getElementById("main").style.marginLeft = "25%";
-        document.getElementById("mySidebar"). style.width = "25%";
+        document.getElementById("mySidebar").style.width = "25%";
         document.getElementById("mySidebar").style.display = "block";
         document.getElementById("openNav").style.display = 'none';
     }
@@ -297,7 +310,7 @@
         document.getElementById("mySidebar").style.display = "none";
         document.getElementById("openNav").style.display = "inline-block";
     }
-    
+
     let notificationCheckInterval;
 
     function toggleNotifications() {
@@ -315,22 +328,22 @@
                 if (data.success) {
                     const notificationList = document.getElementById('notificationList');
                     notificationList.innerHTML = '';
-                    
+
                     let unreadCount = 0;
                     data.notifications.forEach(notification => {
                         if (!notification.is_read) unreadCount++;
-                        
+
                         const item = document.createElement('div');
                         item.className = `notification-item ${notification.is_read ? '' : 'unread'}`;
                         item.innerHTML = `
                             <p class="message">${notification.message}</p>
                             <p class="time">${new Date(notification.created_at).toLocaleString()}</p>
                         `;
-                        
+
                         item.onclick = () => markNotificationRead(notification.id);
                         notificationList.appendChild(item);
                     });
-                    
+
                     updateNotificationBadge(unreadCount);
                 }
             })
@@ -345,13 +358,13 @@
             },
             body: JSON.stringify({ notification_id: notificationId })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                loadNotifications();
-            }
-        })
-        .catch(error => console.error('Error marking notification as read:', error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadNotifications();
+                }
+            })
+            .catch(error => console.error('Error marking notification as read:', error));
     }
 
     function updateNotificationBadge(count) {
@@ -365,7 +378,7 @@
         popup.className = 'notification-popup';
         popup.textContent = message;
         document.body.appendChild(popup);
-        
+
         setTimeout(() => {
             popup.remove();
         }, 5000);
@@ -375,7 +388,7 @@
     function startNotificationCheck() {
         // Check immediately
         loadNotifications();
-        
+
         // Then check every 30 seconds
         notificationCheckInterval = setInterval(loadNotifications, 30000);
     }
@@ -393,4 +406,5 @@
     // Stop checking when the page is unloaded
     window.addEventListener('beforeunload', stopNotificationCheck);
 </script>
+
 </html>

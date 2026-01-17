@@ -1,6 +1,187 @@
 {% extends 'dashboard.html' %}
 {% block content %}
-    <div style="margin: auto;">
-        <img src="{{ url_for('static', filename='image/labrules.jpg') }}" alt="Profile" style="display: block; margin: auto; width: 1300px; height: fit-content;">
+<title>Laboratory Rules and Regulation</title>
+<style>
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #ffffff;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page {
+        width: 800px;
+        margin: 30px auto;
+        padding: 20px 40px;
+        box-sizing: border-box;
+        border: 1px solid #ddd;
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .header img {
+        height: 70px;
+    }
+
+    .title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: bold;
+        margin: 20px 0;
+    }
+
+    .intro {
+        font-size: 14px;
+        margin-bottom: 15px;
+        text-align: justify;
+    }
+
+    ol {
+        font-size: 14px;
+        padding-left: 20px;
+        text-align: justify;
+    }
+
+    ol li {
+        margin-bottom: 10px;
+    }
+
+    ul {
+        margin-top: 8px;
+        padding-left: 20px;
+        list-style-type: lower-alpha;
+    }
+
+    ul li {
+        margin-bottom: 5px;
+    }
+
+    .section-title {
+        font-weight: bold;
+        margin-top: 25px;
+        font-size: 15px;
+    }
+
+    .discipline {
+        font-size: 14px;
+        margin-top: 10px;
+    }
+
+    .discipline p {
+        margin: 6px 0;
+    }
+</style>
+</head>
+
+<body>
+
+    <div class="page">
+
+        <!-- Header with Logos -->
+        <div class="header">
+            <!-- Replace src with actual logo paths -->
+            <img src="{{ url_for('static', filename='image/CCS_LOGO.png') }}" alt="CICS Logo">
+            <img src="{{ url_for('static', filename='image/University_of_Cebu_Logo.png') }}"
+                alt="University of Cebu Logo">
+        </div>
+
+        <!-- Title -->
+        <div class="title">
+            Laboratory Rules and Regulation
+        </div>
+
+        <!-- Intro -->
+        <p class="intro">
+            <strong> To avoid embarrassment and maintain camaraderie with your friends and superiors at our
+                laboratories,
+                please observe the following:</strong>
+        </p>
+
+        <!-- Rules -->
+        <ol>
+            <li>
+                Maintain silence, proper decorum, and discipline inside the laboratory.
+                Mobile phones, walkmans and other personal pieces of equipment must be switched off.
+            </li>
+
+            <li>
+                Games are not allowed inside the lab. This includes computer-related games, card games and
+                other games that may disturb the operation of the lab.
+            </li>
+
+            <li>
+                Surfing the Internet is allowed only with the permission of the instructor.
+                Downloading and installing of software are strictly prohibited.
+            </li>
+
+            <li>
+                Getting access to other websites not related to the course (especially pornographic
+                and illicit sites) is strictly prohibited.
+            </li>
+
+            <li>
+                Deleting computer files and changing the set-up of the computer is a major offense.
+            </li>
+
+            <li>
+                Observe computer time usage carefully. A fifteen-minute allowance is given for each use.
+                Otherwise, the unit will be given to those who wish to "sit-in".
+            </li>
+
+            <li>
+                Observe proper decorum while inside the laboratory.
+                <ul>
+                    <li>Do not get inside the lab unless the instructor is present.</li>
+                    <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
+                    <li>Follow the seating arrangement of your instructor.</li>
+                    <li>At the end of class, all software programs must be closed.</li>
+                    <li>Return all chairs to their proper places after using.</li>
+                </ul>
+            </li>
+
+            <li>
+                Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.
+            </li>
+
+            <li>
+                Anyone causing a continual disturbance will be asked to leave the lab.
+                Acts or gestures offensive to the members of the community, including public display
+                of physical intimacy, are not tolerated.
+            </li>
+
+            <li>
+                Persons exhibiting hostile or threatening behavior such as yelling, swearing, or
+                disregarding requests made by lab personnel will be asked to leave the lab.
+            </li>
+
+            <li>
+                For serious offense, the lab personnel may call the Civil Security Office (CSU) for assistance.
+            </li>
+
+            <li>
+                Any technical problem or difficulty must be addressed to the laboratory supervisor,
+                student assistant or instructor immediately.
+            </li>
+        </ol>
+
+        <!-- Disciplinary Action -->
+        <div class="section-title">DISCIPLINARY ACTION</div>
+
+        <div class="discipline">
+            <p>
+                • <strong>First Offense</strong> – The Head or the Dean or OIC recommends to the Guidance Center
+                for a suspension from classes for each offender.
+            </p>
+            <p>
+                • <strong>Second and Subsequent Offenses</strong> – A recommendation for a heavier sanction
+                will be endorsed to the Guidance Center.
+            </p>
+        </div>
+
     </div>
-{% endblock %}
+    {% endblock %}
