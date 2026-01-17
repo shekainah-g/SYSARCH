@@ -1374,5 +1374,5 @@ if __name__ == "__main__":
         print("Database tables initialized successfully")
     except Exception as e:
         print(f"Error initializing database: {e}")
-    
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
