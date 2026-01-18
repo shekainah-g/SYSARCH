@@ -3,64 +3,311 @@
 
 <head>
     <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-card {
+            display: flex;
+            width: 90%;
+            max-width: 900px;
+            background: rgba(34, 56, 113, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            min-height: 500px;
+        }
+
+        /* Brand Side (Left/Top) */
+        .brand-side {
+            flex: 1;
+            /* Using specific theme variables */
+            background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Glass effect pattern overlay */
+        .brand-side::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("{{ url_for('static', filename='image/CCS_LOGO.png') }}") no-repeat center center;
+            background-size: 150%;
+            opacity: 0.1;
+            filter: blur(2px);
+        }
+
+        .brand-content {
+            z-index: 1;
+        }
+
+        .brand-logo {
+            width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+        }
+
+        .brand-text h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .brand-text p {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Form Side (Right/Bottom) */
+        .form-side {
+            flex: 1.2;
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-color: white;
+        }
+
+        .form-header {
+            margin-bottom: 30px;
+        }
+
+        .form-header h3 {
+            color: var(--primary-dark);
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--secondary-dark);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background-color: #f8f9fa;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-gold);
+            background-color: white;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(94, 140, 173, 0.2);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-dark);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            background: var(--secondary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .register-link a {
+            color: var(--primary-dark);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .register-link a:hover {
+            color: var(--secondary-dark);
+            text-decoration: underline;
+        }
+
         .flash-messages {
-            position: fixed;
+            position: absolute;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
+            width: 90%;
+            max-width: 400px;
         }
 
         .flash {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            color: white;
             text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
         }
 
         .error {
-            background-color: #ffebee;
-            color: #c62828;
+            background-color: #dc3545;
         }
 
         .success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
+            background-color: #28a745;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+
+            /* Main login card */
+            .login-card {
+                flex-direction: column;
+                max-width: 360px;
+                width: 90%;
+                max-height: 360px;
+                height: 90%;
+                margin: 100px auto 50px;
+                /* pulls card away from the top */
+                padding: 24px 20px;
+                border-radius: 15px;
+            }
+
+            /* Headings */
+            .login-card h1,
+            .login-card h2 {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+
+            /* Subtext */
+            .login-card p {
+                font-size: 0.9rem;
+                margin-bottom: 16px;
+            }
+
+            /* Labels */
+            .login-card label {
+                font-size: 0.85rem;
+            }
+
+            /* Inputs */
+            .login-card input {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            /* Button */
+            .login-card button {
+                padding: 10px;
+                font-size: 0.95rem;
+                color: blue;
+            }
+        }
+
+
+        .brand-side {
+            padding: 30px 20px;
+            min-height: 180px;
+        }
+
+        .brand-logo {
+            width: 90px;
+            margin-bottom: 10px;
+        }
+
+        .brand-text h2 {
+            font-size: 18px;
+        }
+
+        .form-side {
+            padding: 30px 25px;
+        }
+
+        .form-header h3 {
+            font-size: 24px;
+        }
         }
     </style>
 </head>
 
 <body>
-    <div class="container w3-display-middle w3-card" style="width: 700px; 
-    background: rgba(255, 255, 255, 0.2); 
-    backdrop-filter: blur(10px); 
-    padding: 20px; 
-    border-radius: 30px; 
-    color: white; 
-    position: absolute; 
-    top: 50%; 
-    left: 50%; 
-    transform: translate(-50%, -50%);">
+    <div class="login-card">
+        <!-- Left Side: Brand -->
+        <div class="brand-side">
+            <div class="brand-content">
+                <img src="{{ url_for('static', filename='image/CCS_LOGO.png') }}" alt="CCS Logo" class="brand-logo">
+                <div class="brand-text">
+                    <h2>Sit-in Management</h2>
+                    <p>College of Computer Studies</p>
+                </div>
+            </div>
+        </div>
 
-        <div class="row">
-            <div class="logo w3-half w3-container">
-                <h6> </h6>
-                <img src="{{ url_for('static', filename='image/CCS_LOGO.png') }}" alt="CCS Logo"
-                    style="width: 300px; height: 300px;">
-                <h5 style="text-align: center;"> Sit-in Management System </h5>
+        <!-- Right Side: Form -->
+        <div class="form-side">
+            <div class="form-header">
+                <h3>Welcome Back</h3>
+                <p style="color: #666;">Please enter your details to login</p>
             </div>
 
-            <div class="login w3-half">
-                <h2 style="color: white;">Login</h2>
-                <form class="w3-container w3-padding-16 w3-margin-center" method="POST" action="{{ url_for('login') }}">
-                    <input type="text" name="username" id="username" placeholder="Enter username" required> <br><br>
-                    <input type="password" name="password" id="password" placeholder="Enter password" required> <br><br>
-                    <button class="w3-block w3-ripple w3-text-white w3-margin-center w3-blue"
-                        type="submit">Login</button>
-                    <h6>Don't have an account? <a href="{{ url_for('register') }}"
-                            class="btn rgstr w3-text-blue w3-margin-center">Register</a></h6>
-                </form>
-            </div>
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" class="form-control" placeholder="Student ID or Username"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    Sign In <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+                </button>
+
+                <div class="register-link">
+                    Don't have an account? <a href="{{ url_for('register') }}">Register Now</a>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -69,7 +316,7 @@
     <div class="flash-messages">
         {% for category, message in messages %}
         <div class="flash {{ category }}">
-            <span>{{ message }}</span>
+            {{ message }}
         </div>
         {% endfor %}
     </div>
